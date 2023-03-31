@@ -1,0 +1,16 @@
+# env_config
+# satellite
+sat_num: 126
+satA_num: 108
+satB_num: 9
+satC_num: 9
+n_sat: 20
+n_state: 3
+n_actions: 2
+# Task
+pri_grb: 100
+pri_too: 10
+pri_normal: 1
+
+#seed
+seed: 12315
