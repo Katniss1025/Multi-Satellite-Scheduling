@@ -2,10 +2,14 @@ import numpy as np
 
 
 def equatorial_to_cartesian(ra, dec):
+    ra = ra * np.pi / 180
+    dec = dec * np.pi / 180
     x = np.cos(ra) * np.cos(dec)
     y = np.sin(ra) * np.cos(dec)
     z = np.sin(dec)
     return [x, y, z]
+
+
 
 # 将三维坐标转换为弧度
     ra_rad_rot = np.arctan2(y_rotated, x_rotated)
@@ -45,15 +49,8 @@ def rotate(ras, decs):
         tag = tag + " " + axises[i] + ':' + str(angle[i])
     angle = angle / 180 * np.pi
 
-    # 将赤经赤纬（角度）转换为弧度
-    ra_rad = ras * np.pi / 180
-    dec_rad = decs * np.pi / 180
-
-    # 弧度转为三维坐标(x,y,z)
-    # R = 1
-    x = np.cos(ra_rad) * np.cos(dec_rad)
-    y = np.sin(ra_rad) * np.cos(dec_rad)
-    z = np.sin(dec_rad)
+    # 将赤经赤纬（角度）转换为弧度，再转换成三维坐标
+    [x, y, z] = equatorial_to_cartesian(ras, decs)
 
     # 初始化旋转后的坐标
     x_rotated = np.zeros_like(ras, dtype=float)
