@@ -4,16 +4,17 @@ import openpyxl
 import healpy
 
 
-def random_select_skymap():
+def read_a_skymap(event=None, random=False):
     root = (os.path.abspath(os.path.join(os.getcwd(), "../")))
-    wb = openpyxl.load_workbook(root + '/data/eventID.xlsx')
-    ws = wb['Sheet1']
-    eventID = []
-    nrow = ws.max_row
-    for i in range(nrow-1):
-        cell = ws.cell(row=i+2, column=1)
-        eventID.append(cell.value)
-    event = eventID[np.random.randint(len(eventID))]  # 从57条数据中随机选择一条
+    if random == True:
+        wb = openpyxl.load_workbook(root + '/data/eventID.xlsx')
+        ws = wb['Sheet1']
+        eventID = []
+        nrow = ws.max_row
+        for i in range(nrow - 1):
+            cell = ws.cell(row=i + 2, column=1)
+            eventID.append(cell.value)
+        event = eventID[np.random.randint(len(eventID))]  # 从57条数据中随机选择一条
     data, h = healpy.read_map(root + '/data/SkyMap/Flat/'+event+'_Flat.fits.gz', h=True)
     return data, h, event
 

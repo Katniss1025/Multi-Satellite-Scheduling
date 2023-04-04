@@ -1,13 +1,14 @@
 import os
+
 import healpy
 import numpy as np
+import openpyxl
 from healpy.newvisufunc import projview
 from matplotlib import pyplot as plt
 from pylab import show
-from transUtils import rotate
-import openpyxl
-import probUtils as pu
 
+import probUtils as pu
+from transUtils import rotate
 
 # Read a fits file
 root = (os.path.abspath(os.path.join(os.getcwd(), "../")))
