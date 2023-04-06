@@ -5,8 +5,6 @@ from scipy import stats
 import SkyMapUtils as smu
 import transUtils as tu
 
-## 从57张sky maps中分别估计高斯分布的参数
-
 
 def make_gaussian(mean, cov, nside=128):
     npix = hp.nside2npix(nside)
@@ -15,9 +13,6 @@ def make_gaussian(mean, cov, nside=128):
     prob = dist.pdf(xyz)
     return prob / prob.sum()
 
-
-def save_distribution_parameter(mean, cov):
-    return mean, cov
 
 # This one is centered at RA=45°, Dec=0° and has a standard deviation of ~1°.
 # prob = make_gaussian(
@@ -62,6 +57,7 @@ def save_distribution_parameter(mean, cov):
 #      [0, 1, -0.15],
 #      [0, -0.15, 0.1]])
 if __name__ == "__main__":
+    ## 从57张sky maps中分别估计高斯分布的参数
     # 估计所有Sky Maps的参数
     means = []
     covs = []
@@ -77,33 +73,5 @@ if __name__ == "__main__":
         cov = np.cov(A[:, samples])
         means.append(mean)
         covs.append(cov)
-        # prob_gen = make_gaussian(mean, cov)
 
     np.save(root + '/data/GaussianParameters.npy', {'eventID': eventID, 'means': means, 'covs': covs})
-
-    # 可视化原SkyMaps和估计出的SkyMaps
-    # projview(
-    #     prob,
-    #     coord=["E"],
-    #     graticule=True,
-    #     cmap=plt.cm.RdYlBu,
-    #     cbar=False,
-    #     graticule_labels=True,
-    #     longitude_grid_spacing=45,
-    #     projection_type="mollweide",  # cart, mollweide
-    #     title=event,
-    # )
-    # show()
-    #
-    # projview(
-    #     prob_gen,
-    #     coord=["E"],
-    #     graticule=True,
-    #     cmap=plt.cm.RdYlBu,
-    #     cbar=False,
-    #     graticule_labels=True,
-    #     longitude_grid_spacing=45,
-    #     projection_type="mollweide",  # cart, mollweide
-    #     title=event+" generated"
-    # )
-    # show()

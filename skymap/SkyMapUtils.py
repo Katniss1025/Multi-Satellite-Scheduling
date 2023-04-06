@@ -2,6 +2,9 @@ import numpy as np
 import os
 import openpyxl
 import healpy
+from healpy.newvisufunc import projview
+from matplotlib import pyplot as plt
+from pylab import show
 
 
 def read_a_skymap(event=None, random=False):
@@ -26,3 +29,19 @@ def skymap_standard(prob, nside=128):
     area = healpy.nside2pixarea(nside=nside, degrees=True)
     ra, dec = healpy.pix2ang(nside, pix_indices, lonlat=True)
     return m, npix, ra, dec, area
+
+
+def visualize(prob, title=None):
+    projview(
+        prob,
+        coord=["E"],
+        graticule=True,
+        cmap=plt.cm.RdYlBu,
+        cbar=False,
+        graticule_labels=True,
+        longitude_grid_spacing=45,
+        projection_type="mollweide",  # cart, mollweide
+        title=title,
+    )
+    show()
+
