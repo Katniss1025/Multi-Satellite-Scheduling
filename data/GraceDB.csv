@@ -1,0 +1,81 @@
+Event ID,date,time,comment,flatten_skymap,moc_skymap
+S190405ar,2019/4/5,16:01:30,RETRACTED,,
+S190408an,2019/4/8,18:18:02,NORMAL,GW190408_181802_PublicationSamples_flattened.fits.gz,GW190408_181802_PublicationSamples.multiorder.fits
+S190412m,2019/4/12,5:30:44,NORMAL,GW190412_PublicationSamples_flattened.fits.gz,GW190412_PublicationSamples.multiorder.fits
+S190421ar,2019/4/21,21:38:56,NORMAL,GW190421_213856_PublicationSamples_flattened.fits.gz,GW190421_213856_PublicationSamples.multiorder.fits
+S190425z,2019/4/25,8:18:05,NORMAL,GW190425_PublicationSamples_flattened.fits.gz,GW190425_PublicationSamples.multiorder.fits
+S190426c,2019/4/26,15:21:55,NORMAL,GW190426_152155_PublicationSamples_flattened.fits.gz,GW190426_152155_PublicationSamples.multiorder.fits
+S190503bf,2019/5/3,18:54:04,NORMAL,GW190503_185404_PublicationSamples_flattened.fits.gz,GW190503_185404_PublicationSamples.multiorder.fits
+S190510g,2019/5/10,2:59:39,NORMAL,LALInference.fits.gz,LALInference.fits
+S190512at,2019/5/12,18:07:14,NORMAL,GW190512_180714_PublicationSamples_flattened.fits.gz,GW190512_180714_PublicationSamples.multiorder.fits
+S190513bm,2019/5/13,20:54:28,NORMAL,GW190513_205428_PublicationSamples_flattened.fits.gz,GW190513_205428_PublicationSamples.multiorder.fits
+S190517h,17-May-19,5:51:01,NORMAL,GW190517_055101_PublicationSamples_flattened.fits.gz,GW190517_055101_PublicationSamples.multiorder.fits
+S190518bb,18-May-19,19:19:19,RETRACTED,,
+S190519bj,19-May-19,15:35:44,NORMAL,GW190519_153544_PublicationSamples_flattened.fits.gz,GW190519_153544_PublicationSamples.multiorder.fits
+S190521g,21-May-19,3:02:29,NORMAL,GW190521_PublicationSamples_flattened.fits.gz,GW190521_PublicationSamples.multiorder.fits
+S190521r,21-May-19,7:43:59,NORMAL,GW190521_074359_PublicationSamples_flattened.fits.gz,GW190521_074359_PublicationSamples.multiorder.fits
+S190524q,24-May-19,4:52:06,RETRACTED,,
+S190602aq,2-Jun-19,17:59:27,NORMAL,GW190602_175927_PublicationSamples_flattened.fits.gz,GW190602_175927_PublicationSamples.multiorder.fits
+S190630ag,30-Jun-19,18:52:05,NORMAL,GW190630_185205_PublicationSamples_flattened.fits.gz,GW190630_185205_PublicationSamples.multiorder.fits
+S190701ah,1-Jul-19,20:33:06,NORMAL,GW190701_203306_PublicationSamples_flattened.fits.gz,GW190701_203306_PublicationSamples.multiorder.fits
+S190706ai,6-Jul-19,22:26:41,NORMAL,GW190706_222641_PublicationSamples_flattened.fits.gz,GW190706_222641_PublicationSamples.multiorder.fits
+S190707q,7-Jul-19,9:33:26,NORMAL,GW190707_093326_PublicationSamples_flattened.fits.gz,GW190707_093326_PublicationSamples.multiorder.fits
+S190718y,18-Jul-19,14:35:12,NORMAL,bayestar.fits.gz,bayestar.multiorder.fits
+S190720a,20-Jul-19,0:08:36,NORMAL,GW190720_000836_PublicationSamples_flattened.fits.gz,GW190720_000836_PublicationSamples.multiorder.fits
+S190727h,27-Jul-19,6:03:33,NORMAL,GW190727_060333_PublicationSamples_flattened.fits.gz,GW190727_060333_PublicationSamples.multiorder.fits
+S190728q,28-Jul-19,6:45:10,NORMAL,GW190728_064510_PublicationSamples_flattened.fits.gz,GW190728_064510_PublicationSamples.multiorder.fits
+S190808ae,"Aug. 8, 2019",22:21:21,RETRACTED,,
+S190814bv,"Aug. 14, 2019",21:10:39,NORMAL,GW190814_PublicationSamples_flattened.fits.gz,GW190814_PublicationSamples.multiorder.fits
+S190816i,"Aug. 16, 2019",13:04:31,RETRACTED,,
+S190822c,"Aug. 22, 2019",1:29:59,RETRACTED,,
+S190828j,"Aug. 28, 2019",6:34:05,NORMAL,GW190828_063405_PublicationSamples_flattened.fits.gz,GW190828_063405_PublicationSamples.multiorder.fits
+S190828l,"Aug. 28, 2019",6:55:09,NORMAL,GW190828_065509_PublicationSamples_flattened.fits.gz,GW190828_065509_PublicationSamples.multiorder.fits
+S190829u,"Aug. 29, 2019",21:05:56,RETRACTED,,
+S190901ap,"Sept. 1, 2019",23:31:01,NORMAL,LALInference.v2.fits.gz,bayestar.multiorder.fits
+S190910d,"Sept. 10, 2019",1:26:19,NORMAL,LALInference.fits.gz,LALInference.multiorder.fits
+S190910h,"Sept. 10, 2019",8:29:58,NORMAL,LALInference.fits.gz,LALInference.multiorder.fits
+S190915ak,"Sept. 15, 2019",23:57:02,NORMAL,GW190915_235702_PublicationSamples_flattened.fits.gz,GW190915_235702_PublicationSamples.multiorder.fits
+S190923y,"Sept. 23, 2019",12:55:59,NORMAL,bayestar.fits.gz,bayestar.multiorder.fits
+S190924h,"Sept. 24, 2019",2:18:46,NORMAL,GW190924_021846_PublicationSamples_flattened.fits.gz,GW190924_021846_PublicationSamples.multiorder.fits
+S190928c,"Sept. 28, 2019",2:11:45,RETRACTED,,
+S190930s,"Sept. 30, 2019",13:35:41,NORMAL,GW190930_133541_PublicationSamples_flattened.fits.gz,GW190930_133541_PublicationSamples.multiorder.fits
+S190930t,"Sept. 30, 2019",14:34:07,NORMAL,bayestar.fits.gz,bayestar.multiorder.fits
+S191105e,"Nov. 5, 2019",14:35:21,NORMAL,LALInference.fits.gz,LALInference.multiorder.fits
+S191109d,"Nov. 9, 2019",1:07:17,NORMAL,bayestar.fits.gz,bayestar.multiorder.fits
+S191110x,"Nov. 10, 2019",18:08:42,RETRACTED,,
+S191110af,"Nov. 10, 2019",23:06:44,RETRACTED,,
+S191117j,"Nov. 17, 2019",6:08:22,RETRACTED,,
+S191120aj,"Nov. 20, 2019",16:23:34,RETRACTED,,
+S191120at,"Nov. 20, 2019",20:08:37,RETRACTED,,
+S191124be,"Nov. 24, 2019",9:59:18,RETRACTED,,
+S191129u,"Nov. 29, 2019",13:40:29,NORMAL,LALInference.fits.gz,LALInference.multiorder.fits
+S191204r,"Dec. 4, 2019",17:15:26,NORMAL,bayestar.fits.gz,bayestar.multiorder.fits
+S191205ah,"Dec. 5, 2019",21:52:08,NORMAL,bayestar.fits.gz,bayestar.multiorder.fits
+S191212q,"Dec. 12, 2019",8:27:28,RETRACTED,,
+S191213g,"Dec. 13, 2019",4:34:08,NORMAL,LALInference.fits.gz,LALInference.multiorder.fits
+S191213ai,"Dec. 13, 2019",15:59:05,RETRACTED,,
+S191215w,"Dec. 15, 2019",22:30:52,NORMAL,LALInference.fits.gz,LALInference.multiorder.fits
+S191216ap,"Dec. 16, 2019",21:33:38,NORMAL,LALInference.fits.gz,LALInference.multiorder.fits
+S191220af,"Dec. 20, 2019",12:24:14,RETRACTED,,
+S191222n,"Dec. 22, 2019",3:35:37,NORMAL,LALInference.fits.gz,LALInference.multiorder.fits
+S191225aq,"Dec. 25, 2019",21:57:15,RETRACTED,,
+S200105ae,"Jan. 5, 2020",16:24:26,NORMAL,LALInference.fits.gz,LALInference.multiorder.fits
+S200106av,"Jan. 6, 2020",18:34:23,RETRACTED,,
+S200106au,"Jan. 6, 2020",18:34:29,RETRACTED,,
+S200108v,"Jan. 8, 2020",10:00:38,RETRACTED,,
+S200112r,"Jan. 12, 2020",15:58:38,NORMAL,LALInference.fits.gz,LALInference.multiorder.fits
+S200114f,"Jan. 14, 2020",2:08:18,NORMAL,cWB.fits.gz,cWB.fits.gz
+S200115j,"Jan. 15, 2020",4:23:09,NORMAL,LALInference.fits.gz,LALInference.multiorder.fits
+S200116ah,"Jan. 16, 2020",11:56:42,NORMAL,bayestar.fits.gz,bayestar.multiorder.fits
+S200128d,"Jan. 28, 2020",2:20:11,NORMAL,LALInference.fits.gz,LALInference.multiorder.fits
+S200129m,"Jan. 29, 2020",6:54:58,NORMAL,LALInference.fits.gz,LALInference.multiorder.fits
+S200208q,"Feb. 8, 2020",13:01:17,NORMAL,LALInference.fits.gz,LALInference.multiorder.fits
+S200213t,"Feb. 13, 2020",4:10:40,NORMAL,LALInference.fits.gz,LALInference.multiorder.fits
+S200219ac,"Feb. 19, 2020",9:44:15,NORMAL,LALInference.fits.gz,LALInference.multiorder.fits
+S200224ca,"Feb. 24, 2020",22:22:34,NORMAL,LALInference.fits.gz,LALInference.multiorder.fits
+S200225q,"Feb. 25, 2020",6:04:02,NORMAL,LALInference.fits.gz,LALInference.multiorder.fits
+S200302c,2-Mar-20,1:58:11,NORMAL,LALInference.fits.gz,LALInference.multiorder.fits
+S200303ba,3-Mar-20,12:15:48,RETRACTED,,
+S200308e,8-Mar-20,1:19:27,RETRACTED,,
+S200311bg,11-Mar-20,11:58:53,NORMAL,LALInference.fits.gz,LALInference.multiorder.fits
+S200316bj,16-Mar-20,21:57:56,NORMAL,LALInference.fits.gz,LALInference.multiorder.fits

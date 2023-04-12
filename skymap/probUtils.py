@@ -21,6 +21,20 @@ def find_credible_region(nside, credible_levels, credible):
 
 
 def integrated_prob_in_a_circle(ra, dec, radius, hpx, nside):
+    """ 计算视野里的网格集合和总概率
+    Args:
+        define the RA, Dec, and radius of circle in degrees:
+        ra(float): 指向的赤经
+        dec(float): 指向的赤纬度
+        radius(float): 视场的半径，以度为单位
+        hpx(array): 概率
+        nside(int): SkyMap属性
+    Returns:
+        ipix_disc(array): 圆形视场中网格的索引
+        ipix_prob(array): 圆形视场中网格对应的概率
+        prob_sum(float): 圆形时长中所有网格的概率之和
+    """
+
     # convert to spherical polar coordinates and radius of circle in radians:
     theta = 0.5 * np.pi - np.deg2rad(dec)
     phi = np.deg2rad(ra)
@@ -32,8 +46,12 @@ def integrated_prob_in_a_circle(ra, dec, radius, hpx, nside):
     # call hp.query_disc, which returns an array of the indices of the pixels that are inside the circle:
     ipix_disc = hp.query_disc(nside, xyz, radius)
 
+    # prob array
+    ipix_prob = hpx[ipix_disc]
+
     # sum the probability in all of the matching pixels:
-    return hpx[ipix_disc].sum()
+    prob_sum = ipix_prob.sum()
+    return ipix_disc, ipix_prob, prob_sum
 
 
 def find_highest_prob_pixel(hpx, nside):

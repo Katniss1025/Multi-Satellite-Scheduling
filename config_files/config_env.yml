@@ -7,10 +7,16 @@ satC_num: 9
 n_sat: 20
 n_state: 3
 n_actions: 2
-# Task
-pri_grb: 100
-pri_too: 10
-pri_normal: 1
+# action
+
+# state
+state_size:
+  sat:
+  task: 2
+  inr:
 
 #seed
 seed: 12315
+
+#SkyMapStandard
+nside: 128
