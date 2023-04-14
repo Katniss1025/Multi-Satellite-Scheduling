@@ -4,6 +4,8 @@ import gym
 import numpy as np
 from gym import spaces
 import healpy as hp
+from time_dist_simulation.test import sample
+
 
 class MultiSatelliteEnv(gym.Env):
     """ 环境类
@@ -43,24 +45,36 @@ class MultiSatelliteEnv(gym.Env):
         random.seed(seed)
 
     def reset(self):
-        """ 重置环境
+        """ 重置环境，新的爆发事件
         Important: the observation must be a numpy array
         """
-        self.state = [0] * len(self.state)
+        from skymap.DataReinforcement import data_reinforcement_by_rotate
+        self.state = np.zeros(self.state.shape)
+        m, m_rotated_area_90, m_rotated_area_50  = data_reinforcement_by_rotate()
+        self.state[:,0] = m  # 新的skymap的prob
         self.state[random.randrange(0, len(self.state))] = 1
         self.current_step = 0
         return self.state
 
     def step(self, action):
         reward = 0
+        ipix_total = []
+        # self.state =   # TODO
         for i in action:  # i为卫星对应观测的网格中心索引
             ra, dec = hp.pix2ang(nside=128, ipix=i, lonlat=True)
-            ipix_disc, ipix_prob, prob_sum = integrated_prob_in_a_circle(ra, dec, 2.5, self.state[:, 0])
+            radius = 2.5
+            # 求以(ra,dec)为视场中心，以radius为半径视场内网格集合
+            ipix_disc, ipix_prob, prob_sum = integrated_prob_in_a_circle(ra, dec, radius, self.state[:, 0])
+            # 求所有卫星视场内的网格集合
+            ipix_total.append(ipix_disc.tolist())
+        ipix_total = np.array(ipix_total).reshape(-1)  # 拉成一列
+        ipix_total = list(set(ipix_total))  # 去重
+        self.state[ipix_total, 1] = 10
 
 
-            reward += self.state[:, 0] * self.state[:, 1]
+        reward += self.state[:, 0] * self.state[:, 1]  # TODO
         self.current_step += 1
-        if self.current_step >= self.max_num_steps:
+        if self.current_step >= self.max_num_steps:  # 终止条件
             return self.reset(), reward, True, {}
         return self.state, reward, False, {}
 
