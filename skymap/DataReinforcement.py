@@ -7,8 +7,8 @@ from healpy.newvisufunc import projview
 from matplotlib import pyplot as plt
 from pylab import show
 
-import probUtils as pu
-from transUtils import rotate
+import skymap.probUtils as pu
+from skymap.transUtils import rotate
 
 
 def data_reinforcement_by_rotate():
@@ -19,7 +19,8 @@ def data_reinforcement_by_rotate():
         m_rotated_area_50(float): 旋转后的50%区域面积，单位为平方度
     """
     # Read a fits file
-    root = (os.path.abspath(os.path.join(os.getcwd(), "../")))
+    # root = (os.path.abspath(os.path.join(os.getcwd(), "../")))
+    root = os.getcwd()
     wb = openpyxl.load_workbook(root + '/data/eventID.xlsx')
     ws = wb['Sheet1']
     eventID = []

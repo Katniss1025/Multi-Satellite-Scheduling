@@ -7,8 +7,9 @@ from matplotlib import pyplot as plt
 from pylab import show
 
 
-def read_a_skymap(event=None, random=False):
-    root = (os.path.abspath(os.path.join(os.getcwd(), "../")))
+def read_a_skymap(event=None, random=True):
+    # root = (os.path.abspath(os.path.join(os.getcwd(), "../")))
+    root = os.getcwd()
     if random == True:
         wb = openpyxl.load_workbook(root + '/data/eventID.xlsx')
         ws = wb['Sheet1']

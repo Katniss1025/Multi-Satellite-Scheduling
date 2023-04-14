@@ -48,18 +48,19 @@ class MultiSatelliteEnv(gym.Env):
         """ 重置环境，新的爆发事件
         Important: the observation must be a numpy array
         """
+        # 生成新的事件
         from skymap.DataReinforcement import data_reinforcement_by_rotate
-        self.state = np.zeros(self.state.shape)
-        m, m_rotated_area_90, m_rotated_area_50  = data_reinforcement_by_rotate()
-        self.state[:,0] = m  # 新的skymap的prob
-        self.state[random.randrange(0, len(self.state))] = 1
+        self.state = np.zeros(self.state.shape)  # [len(m), 2]
+        m, m_rotated_area_90, m_rotated_area_50 = data_reinforcement_by_rotate()
+        self.state[:, 0] = m  # 新的skymap的prob
         self.current_step = 0
         return self.state
 
     def step(self, action):
         reward = 0
         ipix_total = []
-        # self.state =   # TODO
+
+        # 更新状态
         for i in action:  # i为卫星对应观测的网格中心索引
             ra, dec = hp.pix2ang(nside=128, ipix=i, lonlat=True)
             radius = 2.5
@@ -69,11 +70,15 @@ class MultiSatelliteEnv(gym.Env):
             ipix_total.append(ipix_disc.tolist())
         ipix_total = np.array(ipix_total).reshape(-1)  # 拉成一列
         ipix_total = list(set(ipix_total))  # 去重
-        self.state[ipix_total, 1] = 10
+        self.state[ipix_total, 1] += 10
 
+        # 更新reward
+        reward += np.sum(self.state[ipix_total, 0] * 10)  # TODO
 
-        reward += self.state[:, 0] * self.state[:, 1]  # TODO
+        # 更新步数
         self.current_step += 1
+
+        # 判断是否达到终止条件
         if self.current_step >= self.max_num_steps:  # 终止条件
             return self.reset(), reward, True, {}
         return self.state, reward, False, {}
