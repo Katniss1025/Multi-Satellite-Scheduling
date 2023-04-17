@@ -20,7 +20,7 @@ def find_credible_region(nside, credible_levels, credible):
     return np.sum(credible_levels <= credible) * hp.nside2pixarea(nside, degrees=True)
 
 
-def integrated_prob_in_a_circle(ra, dec, radius, hpx, nside):
+def integrated_prob_in_a_circle(ra, dec, radius, hpx, nside=128):
     """ 计算视野里的网格集合和总概率
     Args:
         define the RA, Dec, and radius of circle in degrees:

@@ -15,7 +15,7 @@ if __name__ == '__main__':
     # 定义参数
     args = get_args()
     n_sat = args.n_sat
-    n_pix = args.n_pix
+    n_pix = 196608
     t = args.t
     state_size = args.state_size
     action_space = n_sat * [n_pix]
@@ -23,3 +23,6 @@ if __name__ == '__main__':
 
     #
     env = MultiSatelliteEnv(n_sat, n_pix, t, state_size, action_space, num_epoch_steps)
+    state = env.reset()
+    action = env.action_space.sample()
+    state, reward, flag = env.step(action)

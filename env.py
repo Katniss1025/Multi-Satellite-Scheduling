@@ -1,4 +1,7 @@
 import random
+
+import numpy
+
 from skymap.probUtils import integrated_prob_in_a_circle
 import gym
 import numpy as np
@@ -29,7 +32,7 @@ class MultiSatelliteEnv(gym.Env):
         n_actions = n_sat
 
         # self.state_sat = [0] * state_size['sat']  # 卫星状态
-        self.state_task = np.zeros(state_size['task'])  # 任务状态
+        self.state_task = np.zeros([n_pix, state_size['task']])  # 任务状态
         # self.state_inr = [0] * state_size['inr']  # 中断状态
         # self.state = np.concatenate([np.array(self.state_sat), np.array(self.state_task), np.array(self.state_inr)])  # 拼接卫星、任务、中断状态
         self.state = self.state_task  # 拼接卫星、任务状态空间
@@ -58,7 +61,7 @@ class MultiSatelliteEnv(gym.Env):
 
     def step(self, action):
         reward = 0
-        ipix_total = []
+        ipix_total = np.array([])
 
         # 更新状态
         for i in action:  # i为卫星对应观测的网格中心索引
@@ -67,9 +70,10 @@ class MultiSatelliteEnv(gym.Env):
             # 求以(ra,dec)为视场中心，以radius为半径视场内网格集合
             ipix_disc, ipix_prob, prob_sum = integrated_prob_in_a_circle(ra, dec, radius, self.state[:, 0])
             # 求所有卫星视场内的网格集合
-            ipix_total.append(ipix_disc.tolist())
-        ipix_total = np.array(ipix_total).reshape(-1)  # 拉成一列
-        ipix_total = list(set(ipix_total))  # 去重
+            ipix_total = np.append(ipix_total, ipix_disc)
+            # ipix_total.append(ipix_disc.tolist())
+        # ipix_total = np.array(ipix_total).reshape(-1)  # 拉成一列
+        ipix_total = np.unique(ipix_total).astype(np.integer)  # 去重
         self.state[ipix_total, 1] += 10
 
         # 更新reward
@@ -80,8 +84,8 @@ class MultiSatelliteEnv(gym.Env):
 
         # 判断是否达到终止条件
         if self.current_step >= self.max_num_steps:  # 终止条件
-            return self.reset(), reward, True, {}
-        return self.state, reward, False, {}
+            return self.reset(), reward, True  # 已经终止
+        return self.state, reward, False  # 未终止
 
     def render(self, mode):
         pass
