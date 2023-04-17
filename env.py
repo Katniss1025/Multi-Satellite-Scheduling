@@ -44,6 +44,7 @@ class MultiSatelliteEnv(gym.Env):
         # 定义观测空间
         self.observation_space = spaces.Box(low=0, high=np.array([[1, t]] * n_pix), shape=self.state.shape)  # 概率，观测时长，中断时长
 
+
     def seed(self, seed):
         random.seed(seed)
 
@@ -56,6 +57,10 @@ class MultiSatelliteEnv(gym.Env):
         self.state = np.zeros(self.state.shape)  # [len(m), 2]
         m, m_rotated_area_90, m_rotated_area_50 = data_reinforcement_by_rotate()
         self.state[:, 0] = m  # 新的skymap的prob
+
+        # 对概率这一维度进行标准化处理
+        self.state[:, 0] = (self.state[:, 0]-np.min(self.state[:, 0]))/(np.max(self.state[:, 0])-np.min(self.state[:, 0]))
+
         self.current_step = 0
         return self.state
 

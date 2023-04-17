@@ -6,7 +6,17 @@ import torch.optim as optim
 from torch.distributions.categorical import Categorical
 from torch.utils.tensorboard import SummaryWriter
 import gym
-from env import Grid1DEnv
+from env import MultiSatelliteEnv
+import argparse
+import utils
+
+def get_args():
+    # 获取yaml参数
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--config-file', dest='config_file', default='config_env.yml')
+    parser.add_argument('--dataset-name', dest='dataset_name', default='env')
+    args = utils.read_config_file(parser)
+    return args
 
 
 def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
@@ -202,9 +212,17 @@ if __name__ == "__main__":
     num_epoch_steps = 8
     grid_size = 16
     action_space = [16, 16]  # 动作分量1可选范围[0,15], 动作分量2可选范围[0,15]
-    env_seed = 1  # 环境中使用的随机数种子
+    env_seed = 12315  # 环境中使用的随机数种子
 
-    env = Grid1DEnv(grid_size, action_space, num_epoch_steps)
+    args = get_args()
+    n_sat = args.n_sat
+    n_pix = 196608
+    t = args.t
+    state_size = args.state_size
+    action_space = n_sat * [n_pix]
+    num_epoch_steps = args.num_epoch_steps
+
+    env = MultiSatelliteEnv(n_sat, n_pix, t, state_size, action_space, num_epoch_steps)
     env.seed(env_seed)
 
     # 对部分超参数进行网格搜索
