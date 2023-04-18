@@ -28,19 +28,20 @@ def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
 class Agent(nn.Module):
     def __init__(self, env, action_space, num_nn, critic_std, actor_std):
         super().__init__()
-        self.network = nn.Sequential(
-            nn.Conv1d(in_channels=2, out_channels=1, kernel_size=2, stride=2)
-        )
+        # 卷积层
+        # self.network = nn.Sequential(
+        #     nn.Conv1d(in_channels=2, out_channels=1, kernel_size=2, stride=2)
+        # )
         self.action_space = action_space
         self.critic = nn.Sequential(
-            layer_init(nn.Linear(512, num_nn)),  # np.array(env.observation_space.shape).prod()
+            layer_init(nn.Linear(128, num_nn)),  # np.array(env.observation_space.shape).prod()
             nn.ReLU(),
             layer_init(nn.Linear(num_nn, num_nn)),
             nn.ReLU(),
             layer_init(nn.Linear(num_nn, 1), std=critic_std),
         )
         self.actor = nn.Sequential(
-            layer_init(nn.Linear(512, num_nn)),  # np.array(env.observation_space.shape).prod()
+            layer_init(nn.Linear(128, num_nn)),  # np.array(env.observation_space.shape).prod()
             nn.ReLU(),
             layer_init(nn.Linear(num_nn, num_nn)),
             nn.ReLU(),
@@ -48,10 +49,10 @@ class Agent(nn.Module):
         )
 
     def get_value(self, x):
-        return self.critic(self.network(x))
+        return self.critic(x)
 
     def get_action_and_value(self, x, action=None):
-        logits = self.actor(self.network(x))
+        logits = self.actor(x)
         split_logits = torch.split(logits, self.action_space, dim=1)
         multi_categoricals = [Categorical(logits=logits) for logits in split_logits]
         if action is None:
