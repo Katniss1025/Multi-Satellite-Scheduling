@@ -12,14 +12,28 @@ n_actions: 2
 # state
 state_size:
   sat:
-  task: 2
+  task: 1
   inr:
+
 npix: 196608
 t: 1000
-num_epoch_steps: 50
+num_epoch_steps: 1000
 
 #seed
 seed: 12315
 
 #SkyMapStandard
 nside: 128
+
+#ppo
+kl_target: 0.1
+minibatch_size: 32
+gamma: 0.9
+ent_coef: 0.001
+vf_coef: 0.5
+num_nn: 128
+critic_std: 1
+actor_std: 0.01
+learning_rate: 5e-4
+env_seed: 12315
+

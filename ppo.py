@@ -10,6 +10,7 @@ from env import MultiSatelliteEnv
 import argparse
 import utils
 
+
 def get_args():
     # 获取yaml参数
     parser = argparse.ArgumentParser()
@@ -34,14 +35,14 @@ class Agent(nn.Module):
         # )
         self.action_space = action_space
         self.critic = nn.Sequential(
-            layer_init(nn.Linear(128, num_nn)),  # np.array(env.observation_space.shape).prod()
+            layer_init(nn.Linear(env.observation_space.shape[0], num_nn)),  # np.array(env.observation_space.shape).prod()
             nn.ReLU(),
             layer_init(nn.Linear(num_nn, num_nn)),
             nn.ReLU(),
             layer_init(nn.Linear(num_nn, 1), std=critic_std),
         )
         self.actor = nn.Sequential(
-            layer_init(nn.Linear(128, num_nn)),  # np.array(env.observation_space.shape).prod()
+            layer_init(nn.Linear(env.observation_space.shape[0], num_nn)),  # np.array(env.observation_space.shape).prod()
             nn.ReLU(),
             layer_init(nn.Linear(num_nn, num_nn)),
             nn.ReLU(),
@@ -59,13 +60,13 @@ class Agent(nn.Module):
             action = torch.stack([categorical.sample() for categorical in multi_categoricals]).T
         logprob = torch.stack([categorical.log_prob(a) for a, categorical in zip(action.T, multi_categoricals)])
         entropy = torch.stack([categorical.entropy() for categorical in multi_categoricals]).T
-        return action, logprob.sum(0), entropy.sum(0), self.critic(self.network(x))
+        return action, logprob.sum(0), entropy.sum(0), self.critic(x)
 
 
 def train(env, name, action_space, target_kl, minibatch_size, gamma, ent_coef, vf_coef, num_nn, critic_std, actor_std,
           learning_rate, num_epoch_steps):
     # 这部分超参数固定在算法中
-    total_timesteps = 200000  # How many steps you interact with the env
+    total_timesteps = 100000  # How many steps you interact with the env
     num_env_steps = 128  # How many steps you interact with the env before an update
     num_update_steps = 4  # How many times you update the neural networks after interation
     gae_lambda = 0.95  # Parameter in advantage estimation
@@ -209,13 +210,10 @@ if __name__ == "__main__":
     gamma = [0.9]
     ent_coef = [0.001]  # Weight of the entropy loss in the total loss
     vf_coef = [0.5]  # Weight of the value loss in the total loss
-    num_nn = [512]
+    num_nn = [128]
     critic_std = [1]
     actor_std = [0.01]
     learning_rate = [5e-4]
-    num_epoch_steps = 8
-    grid_size = 16
-    action_space = [16, 16]  # 动作分量1可选范围[0,15], 动作分量2可选范围[0,15]
     env_seed = 12315  # 环境中使用的随机数种子
 
     args = get_args()

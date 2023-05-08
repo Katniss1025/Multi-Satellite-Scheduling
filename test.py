@@ -25,4 +25,4 @@ if __name__ == '__main__':
     env = MultiSatelliteEnv(n_sat, n_pix, t, state_size, action_space, num_epoch_steps)
     state = env.reset()
     action = env.action_space.sample()
-    state, reward, flag = env.step(action)
+    state, reward, flag, info = env.step(action)
