@@ -7,6 +7,7 @@ import gym
 import numpy as np
 from gym import spaces
 import healpy as hp
+from utils import get_args
 from time_dist_simulation.test import sample
 
 
@@ -73,11 +74,12 @@ class MultiSatelliteEnv(gym.Env):
         ipix_total = np.array([])
         prob = self.state  # TODO
         # 更新状态
+        nside = get_args().nside_std
         for i in action:  # i为卫星对应观测的网格中心索引
             ra, dec = hp.pix2ang(nside=128, ipix=i, lonlat=True)
             radius = 2.5
             # 求以(ra,dec)为视场中心，以radius为半径视场内网格集合
-            ipix_disc, ipix_prob, prob_sum = integrated_prob_in_a_circle(ra, dec, radius, prob)
+            ipix_disc, ipix_prob, prob_sum = integrated_prob_in_a_circle(ra, dec, radius, prob, nside)
             # 求所有卫星视场内的网格集合
             ipix_total = np.append(ipix_total, ipix_disc)
 

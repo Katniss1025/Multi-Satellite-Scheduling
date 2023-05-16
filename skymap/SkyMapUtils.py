@@ -23,7 +23,7 @@ def read_a_skymap(event=None, random=True):
     return data, h, event
 
 
-def skymap_standard(prob, nside=128):
+def skymap_standard(prob, nside):
     m = healpy.ud_grade(prob, power=-2, nside_out=nside)  # 重采样
     npix = healpy.nside2npix(nside)  # 标准healpix下像素总数
     pix_indices = np.arange(npix)

@@ -2,7 +2,7 @@ import os
 import numpy as np
 import SkyMapUtils as su
 import GaussianUtils as gu
-
+from utils import get_args
 
 def skymap_sample():
     # gp_dict contains eventID, means, covs. They are obtained from gaussian estimation.
@@ -35,7 +35,8 @@ if __name__ == '__main__':
     # ensure the cov is semi positive definite
     while(np.any(np.linalg.eig(cov)[0] < 0)):
         mean, cov = skymap_sample()
-    prob = gu.make_gaussian(mean, cov)
+    nside_std = get_args().nside_std
+    prob = gu.make_gaussian(mean, cov, nside_std)
     su.visualize(prob)
 
 

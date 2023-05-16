@@ -10,6 +10,8 @@ from pylab import show
 import skymap.probUtils as pu
 from skymap.transUtils import rotate
 
+from utils import get_args
+
 
 def data_reinforcement_by_rotate():
     """通过旋转图像实现数据增强
@@ -34,7 +36,8 @@ def data_reinforcement_by_rotate():
     # nside = h['NSIDE']
 
     # 标准化处理
-    nside_std = 128
+    args = get_args()
+    nside_std = args.nside_std
     m = healpy.ud_grade(data, power=-2, nside_out=nside_std)  # 重采样
     npix = healpy.nside2npix(nside_std)  # 标准healpix下像素总数
     pix_indices = np.arange(npix)

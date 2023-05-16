@@ -4,7 +4,7 @@ sat_num: 126
 satA_num: 108
 satB_num: 9
 satC_num: 9
-n_sat: 1
+n_sat: 2
 n_state: 3
 n_actions: 2
 # action
@@ -15,7 +15,7 @@ state_size:
   task: 1
   inr:
 
-npix: 196608
+npix: 12288
 t: 1000
 num_epoch_steps: 1000
 
@@ -23,7 +23,7 @@ num_epoch_steps: 1000
 seed: 12315
 
 #SkyMapStandard
-nside: 128
+nside_std: 32
 
 #ppo
 kl_target: 0.1
