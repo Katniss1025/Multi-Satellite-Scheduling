@@ -15,7 +15,7 @@ state_size:
   task: 1
   inr:
 
-npix: 12288
+npix: 196608
 t: 1000
 num_epoch_steps: 1000
 
@@ -23,7 +23,7 @@ num_epoch_steps: 1000
 seed: 12315
 
 #SkyMapStandard
-nside_std: 32
+nside_std: 128
 
 #ppo
 kl_target: 0.1

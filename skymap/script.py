@@ -23,13 +23,13 @@ hp = HEALPix(nside=nside, order=order, frame=Galactic())
 hp_std = HEALPix(nside=128, order=order, frame=Galactic())
 # Sample a 360x180 grid in RA/Dec
 
-ra = np.linspace(360., 0., 361) * u.deg
+ra = np.linspace(360., 0., 361) * u.deg  # 第三个参数决定网格的粒度
 dec = np.linspace(-90., 90., 181) * u.deg
 ra_grid, dec_grid = np.meshgrid(ra, dec)
 
 # Set up Astropy coordinate objects
 
-coords = SkyCoord(ra_grid.ravel(), dec_grid.ravel(), frame=Galactic()) # .ravel()把所有的拉成一行
+coords = SkyCoord(ra_grid.ravel(), dec_grid.ravel(), frame=Galactic())  # .ravel()把所有的拉成一行
 
 # Interpolate values
 prob = hdulist[1].data['PROB']
@@ -40,7 +40,7 @@ pmap = pmap.reshape((181, 361))
 # npix = healpy.nside2npix(nside)
 # pix_indices = np.arange(npix)
 # _ra, _dec = healpy.pix2ang(nside, pix_indices, lonlat=True)
-ra_rotate, dec_rotate = rotate(ra, dec)
+# ra_rotate, dec_rotate = rotate(ra, dec)
 
 
 # Make a plot of the interpolated temperatures

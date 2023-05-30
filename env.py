@@ -8,6 +8,7 @@ import numpy as np
 from gym import spaces
 import healpy as hp
 from utils import get_args
+import torch
 from time_dist_simulation.test import sample
 
 
@@ -31,23 +32,23 @@ class MultiSatelliteEnv(gym.Env):
 
         # Define action and observation space. They must be gym.spaces objects
         n_actions = n_sat
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         # TODO
         # self.state_sat = [0] * state_size['sat']  # 卫星状态
-        self.state_task = np.zeros([n_pix * state_size['task']])  # 任务状态
+        self.state_task = torch.zeros(181, 361).to(device)  # 任务状态
         # self.state_inr = [0] * state_size['inr']  # 中断状态
         # self.state = np.concatenate([np.array(self.state_sat), np.array(self.state_task), np.array(self.state_inr)])  # 拼接卫星、任务、中断状态
         self.state = self.state_task  # 拼接卫星、任务状态空间
 
         # 定义动作空间.
         # Case1: 连续动作空间，分配赤经和赤纬
-        # self.action_space = spaces.Box(low=np.array([[0.0, -90.0]]*n_sat), high=np.array([[360.0, 90.0]]*n_sat), shape=(n_sat, 2))  # Case1
+        self.action_space = spaces.Box(low=action_space['low'], high=action_space['high'],
+                                       shape=action_space['shape'], dtype=float)
         # Case2: 离散动作空间，分配网格的索引.
-        self.action_space = spaces.MultiDiscrete(action_space)  # Case2
 
         # 定义观测空间 TODO
-        self.observation_space = spaces.Box(low=0, high=np.array([[1]] * n_pix).reshape(-1), shape=self.state.shape)  # 概率，观测时长，中断时长
-
+        self.observation_space = spaces.Box(low=0, high=1, shape=self.state.shape)  # 概率，观测时长，中断时长
 
     def seed(self, seed):
         random.seed(seed)
@@ -60,26 +61,34 @@ class MultiSatelliteEnv(gym.Env):
         from skymap.DataReinforcement import data_reinforcement_by_rotate
         self.state = np.zeros(self.state.shape)  # [len(m), 2]
         m, m_rotated_area_90, m_rotated_area_50 = data_reinforcement_by_rotate()
+        # 转换为二维图像
+        from skymap import SkyMapUtils as smu
+        # smu.visualize(m)
+        pmap = smu.interpolate_sky_map(m, 128, image=False)
 
         # 随任务修改 TODO
-        self.state[0:int(len(self.state))] = m  # 新的skymap的prob
+        self.state = pmap  # 新的skymap的prob
+
         # 对概率这一维度进行标准化处理
         self.state = (self.state-np.min(self.state)) / (np.max(self.state)-np.min(self.state))
 
         self.current_step = 0
-        return self.state
+        return self.state, m
 
-    def step(self, action):
+    def step(self, action, m):
         reward = 0
         ipix_total = np.array([])
         prob = self.state  # TODO
+        action = action.reshape(2, -1).T
         # 更新状态
+        # 计算
         nside = get_args().nside_std
         for i in action:  # i为卫星对应观测的网格中心索引
-            ra, dec = hp.pix2ang(nside=128, ipix=i, lonlat=True)
-            radius = 2.5
+            ra, dec = i[0], i[1]
+
             # 求以(ra,dec)为视场中心，以radius为半径视场内网格集合
-            ipix_disc, ipix_prob, prob_sum = integrated_prob_in_a_circle(ra, dec, radius, prob, nside)
+            radius = 2.5
+            ipix_disc, ipix_prob, prob_sum = integrated_prob_in_a_circle(ra, dec, radius, m, nside)
             # 求所有卫星视场内的网格集合
             ipix_total = np.append(ipix_total, ipix_disc)
 
@@ -88,7 +97,7 @@ class MultiSatelliteEnv(gym.Env):
         # self.state[int(len(self.state)/2)+ipix_total] += 10  # 时长状态
 
         # 更新reward
-        reward += np.sum(self.state[ipix_total] * 10)  # 随任务修改 当前reward为 概率*时长
+        reward += np.sum(m[ipix_total] * 10)  # 随任务修改 当前reward为 概率*时长
 
         # 更新步数
         self.current_step += 1
@@ -103,3 +112,6 @@ class MultiSatelliteEnv(gym.Env):
 
     def close(self):
         pass
+
+
+

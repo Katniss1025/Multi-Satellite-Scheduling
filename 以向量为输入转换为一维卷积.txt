@@ -5,7 +5,6 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.distributions.categorical import Categorical
 from torch.utils.tensorboard import SummaryWriter
-from torch.distributions.normal import Normal
 from einops import rearrange
 from einops.layers.torch import Rearrange
 import gym
@@ -35,42 +34,25 @@ class Agent(nn.Module):
         super().__init__()
         # 卷积层
         self.network = nn.Sequential(
-            nn.Conv2d(in_channels=1, out_channels=2, kernel_size=3, stride=3, padding=0),
+            Rearrange('b d -> b 1 d'),  # 将形状为(batch size, dim)的输入x进行变换，转换为形状为(batch size, 1, dim)的张量
+            nn.Conv1d(in_channels=1, out_channels=2, kernel_size=7, stride=7, padding=3),  # 3个一维卷积层，每层包含一个卷积操作、ReLU激活函数和padding操作
             nn.ReLU(),
-            nn.Conv2d(in_channels=2, out_channels=4, kernel_size=3, stride=3, padding=0),
+            nn.Conv1d(in_channels=2, out_channels=4, kernel_size=7, stride=7, padding=3),
             nn.ReLU(),
-            nn.Conv2d(in_channels=4, out_channels=8, kernel_size=3, stride=3, padding=0),
-            nn.ReLU(),
-            nn.MaxPool2d(kernel_size=3, stride=1, padding=0),
-            # nn.ReLU(),
+            nn.Conv1d(in_channels=4, out_channels=8, kernel_size=7, stride=7, padding=3),
             nn.Flatten(),  # 将卷积层输出的多维数据展平为向量
         )
-        # self.network = nn.Sequential(
-        #     Rearrange('b d -> b 1 d'),  # 将形状为(batch size, dim)的输入x进行变换，转换为形状为(batch size, 1, dim)的张量
-        #     nn.Conv1d(in_channels=1, out_channels=2, kernel_size=7, stride=7, padding=3),  # 3个一维卷积层，每层包含一个卷积操作、ReLU激活函数和padding操作
-        #     nn.ReLU(),
-        #     nn.Conv1d(in_channels=2, out_channels=4, kernel_size=7, stride=7, padding=3),
-        #     nn.ReLU(),
-        #     nn.Conv1d(in_channels=4, out_channels=8, kernel_size=7, stride=7, padding=3),
-        #     nn.Flatten(),  # 将卷积层输出的多维数据展平为向量
-        # )
         self.action_space = action_space
-        self.critic = nn.Sequential(  # critic网络，2个线性层，输入尺寸为352，输出尺寸为1
-            layer_init(nn.Linear(352, num_nn)),  # np.array(env.observation_space.shape).prod()
-            nn.ReLU(),
-            layer_init(nn.Linear(num_nn, num_nn)),
+        self.critic = nn.Sequential(  # critic网络，2个线性层，输入尺寸为288，输出尺寸为1
+            layer_init(nn.Linear(288, num_nn)),  # np.array(env.observation_space.shape).prod()
             nn.ReLU(),
             layer_init(nn.Linear(num_nn, 1), std=critic_std),
         )
-        self.actor_mean = nn.Sequential(
-            layer_init(nn.Linear(352, num_nn)),  # np.array(env.observation_space.shape).prod()
+        self.actor = nn.Sequential(
+            layer_init(nn.Linear(288, num_nn)),  # np.array(env.observation_space.shape).prod()
             nn.ReLU(),
-            layer_init(nn.Linear(num_nn, num_nn)),
-            nn.ReLU(),
-            layer_init(nn.Linear(num_nn, np.prod(env.action_space.shape)), std=actor_std),  # 输出尺寸为动作空间大小
+            layer_init(nn.Linear(num_nn, sum(action_space)), std=actor_std),  # 输出尺寸为动作空间大小
         )
-        self.actor_logstd = nn.Parameter(torch.zeros(1, np.prod(env.action_space.shape)))
-
 
     def get_value(self, x):
         ''' 估计状态价值
@@ -92,55 +74,18 @@ class Agent(nn.Module):
             交叉熵
             状态价值
         '''
-        feature = self.network(x)
-        action_mean = self.actor_mean(feature)
-        action_logstd = self.actor_logstd.expand_as(action_mean)  # 将actor_logstd扩张到action_mean形状
-        action_std = torch.exp(action_logstd)
-        probs = Normal(action_mean, action_std)
+        logits = self.actor(self.network(x))  # 尺寸为(1,nsat*动作空间尺寸)
+        split_logits = torch.split(logits, self.action_space, dim=1)  # 拆分logits为块，每块儿为action_space大小
+        multi_categoricals = [Categorical(logits=logits) for logits in split_logits]  # 分类，决定采取哪个动作
         if action is None:
-            action = probs.sample()
-            action = scale_action(action, action_space)
-        return action, probs.log_prob(action).sum(1), probs.entropy().sum(1), self.critic(feature)
-
-
-def clip_action(action, action_space):
-    '''非法动作剪裁
-
-    Args:
-        action:
-        action_space:
-
-    Returns:
-
-    '''
-
-
-def scale_action(action, action_space):
-    ''' 将tanh激活的action线性映射到赤经和赤纬 [-1,1]->[0,360]/[-90,90]
-    Args:
-        action_tahn(tensor): 被tanh激活的action
-        action_space(dict): 自定义的动作空间的信息
-    Returns:
-        action_scaled(tensor): 映射后的action
-    '''
-    action_tahn = torch.tanh(action)
-    action_scaled = (action_tahn + 1) / 2 * (action_space['high'] - action_space['low']) + action_space['low']
-    return action_scaled
-
-        #
-        # logits = self.actor(self.network(x))  # 尺寸为(1,nsat*动作空间尺寸)
-        # split_logits = torch.split(logits, self.action_space, dim=1)  # 拆分logits为块，每块儿为action_space大小
-        # multi_categoricals = [Categorical(logits=logits) for logits in split_logits]  # 分类，决定采取哪个动作
-        # if action is None:
-        #     action = torch.stack([categorical.sample() for categorical in multi_categoricals]).T  # 对每个卫星输出动作的采样结果
-        # logprob = torch.stack([categorical.log_prob(a) for a, categorical in zip(action.T, multi_categoricals)])  # 输出采样的得到动作的对数概率
-        # entropy = torch.stack([categorical.entropy() for categorical in multi_categoricals]).T  # 计算交叉熵
-        # return action, logprob.sum(0), entropy.sum(0), self.critic(self.network(x))
+            action = torch.stack([categorical.sample() for categorical in multi_categoricals]).T  # 对每个卫星输出动作的采样结果
+        logprob = torch.stack([categorical.log_prob(a) for a, categorical in zip(action.T, multi_categoricals)])  # 输出采样的得到动作的对数概率
+        entropy = torch.stack([categorical.entropy() for categorical in multi_categoricals]).T  # 计算交叉熵
+        return action, logprob.sum(0), entropy.sum(0), self.critic(self.network(x))
 
 
 def train(env, name, action_space, target_kl, minibatch_size, gamma, ent_coef, vf_coef, num_nn, critic_std, actor_std,
-          learning_rate, num_epoch_steps, seed, anneal_rate):
-    print('')
+          learning_rate, num_epoch_steps, seed):
     # 配置超参数，这部分超参数固定在算法中
     total_timesteps = 100000  # How many steps you interact with the env
     num_env_steps = 128  # How many steps you interact with the env before an update
@@ -163,24 +108,19 @@ def train(env, name, action_space, target_kl, minibatch_size, gamma, ent_coef, v
     torch.backends.cudnn.deterministic = True  # 使用固定随机数种子，从而保证实验结果可重现
 
     # Initialize storage for a round
-    obs = torch.zeros((num_env_steps, env.observation_space.shape[0], env.observation_space.shape[1])).to(device)  # 初始化一个tensor，用于存储观测值
-    actions = torch.zeros(num_env_steps, np.prod(action_space['shape'])).to(device)
+    obs = torch.zeros((num_env_steps, env.observation_space.shape[0])).to(device)  # 初始化一个tensor，用于存储观测值
+    actions = torch.zeros(num_env_steps, len(action_space)).to(device)
     logprobs = torch.zeros(num_env_steps).to(device)
     rewards = torch.zeros(num_env_steps).to(device)
     dones = torch.zeros(num_env_steps).to(device)
     values = torch.zeros(num_env_steps).to(device)
-    next_obs, m = env.reset()
-    next_obs = torch.Tensor(next_obs)  # torch.Tensor(env.reset()).to(device)
+    next_obs = torch.Tensor(env.reset()).to(device)
     next_done = torch.zeros(1).to(device)
 
     global_step = 0  # 定义全局步数
     cumu_rewards = 0  # 定义累计奖励
     num_rounds = total_timesteps // num_env_steps  # 训练回合数
-    for round in range(1, num_rounds+1):  # round不同于回合。 训练过程不以回合存储，以固定时间步存储。
-        if anneal_rate:
-            frac = 1.0 - (round - 1.0) / num_rounds
-            lrnow = frac * learning_rate
-            optimizer.param_groups[0]["lr"] = lrnow
+    for round in range(num_rounds):
 
         # action logic
         for step in range(num_env_steps):
@@ -189,16 +129,14 @@ def train(env, name, action_space, target_kl, minibatch_size, gamma, ent_coef, v
             dones[step] = next_done
 
             with torch.no_grad():  # 禁止梯度计算，减少内存占用和计算时间
-                print(step)
-                action, logprob, _, value = agent.get_action_and_value(next_obs.unsqueeze(0).unsqueeze(0))  # 采样历史数据
-
+                action, logprob, _, value = agent.get_action_and_value(next_obs.reshape((1, -1)))  # 采样历史数据
             action = action.flatten()
             values[step] = value.flatten()
             actions[step] = action
             logprobs[step] = logprob
 
             # execute the game and log data.
-            next_obs, reward, done, info = env.step(action.cpu(), m)  # 执行动作，状态转移，计算奖励
+            next_obs, reward, done, info = env.step(action.cpu())  # 执行动作，状态转移，计算奖励
             cumu_rewards += reward  # 累计奖励
             if done == True:  # 回合终止
                 writer.add_scalar("cumulative rewards", cumu_rewards, global_step) # 在Tensorboard中记录累计奖励
@@ -209,22 +147,21 @@ def train(env, name, action_space, target_kl, minibatch_size, gamma, ent_coef, v
 
         # bootstrap value if not done
         with torch.no_grad():
-            next_value = agent.get_value(next_obs.unsqueeze(0).unsqueeze(0)).reshape(1, -1)
+            next_value = agent.get_value(next_obs.reshape(1, -1))
             advantages = torch.zeros_like(rewards).to(device)
             lastgaelam = 0
             for t in reversed(range(num_env_steps)):  # 反向遍历
                 if t == num_env_steps - 1:
                     nextnonterminal = 1.0 - next_done
-                    nextvalues = next_value
                 else:
                     nextnonterminal = 1.0 - dones[t + 1]
-                    nextvalues = values[t + 1]
-                delta = rewards[t] + gamma * nextvalues * nextnonterminal - values[t]
+                    next_value = values[t + 1]
+                delta = rewards[t] + gamma * next_value * nextnonterminal - values[t]
                 advantages[t] = lastgaelam = delta + gamma * gae_lambda * nextnonterminal * lastgaelam
             returns = advantages + values
 
         # flatten the batch
-        b_obs = obs.unsqueeze(1)  # 从[128,181,361]变换为[128,1,181,361]
+        b_obs = obs.reshape((-1,) + env.observation_space.shape)
         b_logprobs = logprobs.reshape(-1)
         b_actions = actions.reshape((-1,) + env.action_space.shape)
         b_advantages = advantages.reshape(-1)
@@ -232,41 +169,31 @@ def train(env, name, action_space, target_kl, minibatch_size, gamma, ent_coef, v
         b_values = values.reshape(-1)
 
         # Optimizing the policy and value network
-        b_inds = np.arange(num_env_steps)
-        clipfracs = []
-
+        inds = np.arange(num_env_steps)
         for update in range(num_update_steps):  # 反复进行更新
-            np.random.shuffle(b_inds)
-
             clipfracs = []
-            # approx_kl = []
-            np.random.shuffle(b_inds)  # 打乱每次更新用的样本顺序
-            for start in range(0, num_env_steps, minibatch_size):  # 基于小批量的更新
+            approx_kl = []
+            np.random.shuffle(inds)  # 打乱每次更新用的样本顺序
+            for start in range(0, num_env_steps, minibatch_size): # 基于小批量的更新
                 end = start + minibatch_size  # 小批量数据的结束位置
-                mb_inds = b_inds[start:end]  # 当前小批量的样本索引
-
-                _, newlogprob, entropy, newvalue = agent.get_action_and_value(b_obs[mb_inds], b_actions[mb_inds])
-                logratio = newlogprob - b_logprobs[mb_inds]
+                minds = inds[start:end]  # 当前小批量的样本索引
+                _, newlogprob, entropy, newvalue = agent.get_action_and_value(b_obs[minds], b_actions[minds])
+                logratio = newlogprob - b_logprobs[minds]
                 ratio = logratio.exp()
 
                 with torch.no_grad():
                     # calculate approx_kl http://joschu.net/blog/kl-approx.html
-                    old_approx_kl = (-logratio).mean()
-                    approx_kl = ((ratio - 1) - logratio).mean()
-                    clipfracs += [((ratio - 1.0).abs() > clip_coef).float().mean().item()]
-
-                mb_advantages = b_advantages[mb_inds]
-                # if args.norm_adv:
-                #     mb_advantages = (mb_advantages - mb_advantages.mean()) / (mb_advantages.std() + 1e-8)
+                    approx_kl += [((ratio - 1) - logratio).mean().item()]  # 估计新旧策略之间的KL散度
+                    clipfracs += [((ratio - 1.0).abs() > clip_coef).float().mean().item()]  # 控制策略更新的幅度
 
                 # Policy loss
-                pg_loss1 = - mb_advantages * ratio
-                pg_loss2 = - mb_advantages * torch.clamp(ratio, 1 - clip_coef, 1 + clip_coef)
+                pg_loss1 = - b_advantages[minds] * ratio
+                pg_loss2 = - b_advantages[minds] * torch.clamp(ratio, 1 - clip_coef, 1 + clip_coef)
                 pg_loss = torch.max(pg_loss1, pg_loss2).mean()
 
                 # Value loss
                 newvalue = newvalue.view(-1)
-                v_loss = 0.5 * ((newvalue - b_returns[mb_inds]) ** 2).mean()
+                v_loss = 0.5 * ((newvalue - b_returns[minds]) ** 2).mean()
 
                 # Total loss
                 entropy_loss = entropy.mean()
@@ -279,7 +206,8 @@ def train(env, name, action_space, target_kl, minibatch_size, gamma, ent_coef, v
                 optimizer.step()  # 更新参数
 
             # Annealing the learning rate, if KL is too high
-            # TODO
+            if np.mean(approx_kl) > target_kl:
+                optimizer.param_groups[0]["lr"] *= 0.99
 
         y_pred, y_true = b_values.cpu().numpy(), b_returns.cpu().numpy()
         var_y = np.var(y_true)
@@ -291,7 +219,7 @@ def train(env, name, action_space, target_kl, minibatch_size, gamma, ent_coef, v
         writer.add_scalar("value_loss", v_loss.item(), global_step)
         writer.add_scalar("policy_loss", pg_loss.item(), global_step)
         writer.add_scalar("entropy", entropy_loss.item(), global_step)
-        writer.add_scalar("approx_kl", np.mean(approx_kl.item()), global_step)
+        writer.add_scalar("approx_kl", np.mean(approx_kl), global_step)
         writer.add_scalar("clipfrac", np.mean(clipfracs), global_step)
         writer.add_scalar("explained_variance", explained_var, global_step)
         writer.add_scalar("mean_value", values.mean().item(), global_step)
@@ -305,7 +233,7 @@ if __name__ == "__main__":
     gamma = [0.9]
     ent_coef = [0.001]  # Weight of the entropy loss in the total loss
     vf_coef = [0.5]  # Weight of the value loss in the total loss
-    num_nn = [128]
+    num_nn = [512]
     critic_std = [1]
     actor_std = [0.01]
     learning_rate = [5e-4]
@@ -317,13 +245,9 @@ if __name__ == "__main__":
     n_pix = args.npix
     t = args.t
     state_size = args.state_size
-    action_space = {'low': np.concatenate((n_sat * [0.], n_sat * [-90.])),
-                    'high': np.concatenate((n_sat * [360.], n_sat * [90.])),
-                    'shape': (n_sat * 2,)}
-
+    action_space = n_sat * [n_pix]
     num_epoch_steps = args.num_epoch_steps
     seed = args.seed
-    anneal_rate = True
 
     env = MultiSatelliteEnv(n_sat, n_pix, t, state_size, action_space, num_epoch_steps)
     env.seed(env_seed)
@@ -342,4 +266,121 @@ if __name__ == "__main__":
                                             ef) + '_vf' + str(vf) + '_num' + str(num) + '_cs' + str(cstd) + '_as' + str(
                                             astd) + '_lr' + str(lr) + time.strftime('%Y%m%d_%H:%M:%S', time.localtime(int(round(time.time()*1000))/1000))
                                         train(env, name, action_space, tk, bs, ga, ef, vf, num, cstd, astd, lr,
-                                              num_epoch_steps, seed, anneal_rate)
+                                              num_epoch_steps, seed)
+
+
+
+
+
+
+
+
+
+
+
+
+import random
+
+import numpy
+
+from skymap.probUtils import integrated_prob_in_a_circle
+import gym
+import numpy as np
+from gym import spaces
+import healpy as hp
+from utils import get_args
+from time_dist_simulation.test import sample
+
+
+class MultiSatelliteEnv(gym.Env):
+    """ 环境类
+    根据gym接口写的自定义环境
+    环境中有一个网格，agent要填满网格。填空白格子得到+1奖励，重复填格子得到-1奖励
+    """
+    def __init__(self, n_sat, n_pix, t, state_size, action_space, num_epoch_steps):
+        """ 初始化
+        n_sat(int): 卫星数量
+        n_pix(int): 像素数
+        t(float): 任务时长
+        action_space(list): 动作空间, 离散: n_sat * [npix], 连续:
+        state_size(dict): 状态空间 keys={'sat','task',''}  state_size = {'task':[n_pix, 2]}
+        num_epoch_steps(int): 一个回合最大时间步数
+        """
+        super(MultiSatelliteEnv, self).__init__()
+        self.max_num_steps = num_epoch_steps  # 一回合最大时间步数
+        self.current_step = 0  # 当前时间步
+
+        # Define action and observation space. They must be gym.spaces objects
+        n_actions = n_sat
+
+        # TODO
+        # self.state_sat = [0] * state_size['sat']  # 卫星状态
+        self.state_task = np.zeros([n_pix * state_size['task']])  # 任务状态
+        # self.state_inr = [0] * state_size['inr']  # 中断状态
+        # self.state = np.concatenate([np.array(self.state_sat), np.array(self.state_task), np.array(self.state_inr)])  # 拼接卫星、任务、中断状态
+        self.state = self.state_task  # 拼接卫星、任务状态空间
+
+        # 定义动作空间.
+        # Case1: 连续动作空间，分配赤经和赤纬
+        # self.action_space = spaces.Box(low=np.array([[0.0, -90.0]]*n_sat), high=np.array([[360.0, 90.0]]*n_sat), shape=(n_sat, 2))  # Case1
+        # Case2: 离散动作空间，分配网格的索引.
+        self.action_space = spaces.MultiDiscrete(action_space)  # Case2
+
+        # 定义观测空间 TODO
+        self.observation_space = spaces.Box(low=0, high=np.array([[1]] * n_pix).reshape(-1), shape=self.state.shape)  # 概率，观测时长，中断时长
+
+
+    def seed(self, seed):
+        random.seed(seed)
+
+    def reset(self):
+        """ 重置环境，新的爆发事件
+        Important: the observation must be a numpy array
+        """
+        # 生成新的事件
+        from skymap.DataReinforcement import data_reinforcement_by_rotate
+        self.state = np.zeros(self.state.shape)  # [len(m), 2]
+        m, m_rotated_area_90, m_rotated_area_50 = data_reinforcement_by_rotate()
+
+        # 随任务修改 TODO
+        self.state[0:int(len(self.state))] = m  # 新的skymap的prob
+        # 对概率这一维度进行标准化处理
+        self.state = (self.state-np.min(self.state)) / (np.max(self.state)-np.min(self.state))
+
+        self.current_step = 0
+        return self.state
+
+    def step(self, action):
+        reward = 0
+        ipix_total = np.array([])
+        prob = self.state  # TODO
+        # 更新状态
+        nside = get_args().nside_std
+        for i in action:  # i为卫星对应观测的网格中心索引
+            ra, dec = hp.pix2ang(nside=128, ipix=i, lonlat=True)
+            radius = 2.5
+            # 求以(ra,dec)为视场中心，以radius为半径视场内网格集合
+            ipix_disc, ipix_prob, prob_sum = integrated_prob_in_a_circle(ra, dec, radius, prob, nside)
+            # 求所有卫星视场内的网格集合
+            ipix_total = np.append(ipix_total, ipix_disc)
+
+        # 随任务修改 TODO
+        ipix_total = np.unique(ipix_total).astype(np.int64)  # 去重
+        # self.state[int(len(self.state)/2)+ipix_total] += 10  # 时长状态
+
+        # 更新reward
+        reward += np.sum(self.state[ipix_total] * 10)  # 随任务修改 当前reward为 概率*时长
+
+        # 更新步数
+        self.current_step += 1
+
+        # 判断是否达到终止条件 TODO
+        if self.current_step >= self.max_num_steps:  # 终止条件
+            return self.reset(), reward, True, {}  # 已经终止
+        return self.state, reward, False, {}  # 未终止
+
+    def render(self, mode):
+        pass
+
+    def close(self):
+        pass
