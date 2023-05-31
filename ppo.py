@@ -140,7 +140,7 @@ def scale_action(action, action_space):
 
 def train(env, name, action_space, target_kl, minibatch_size, gamma, ent_coef, vf_coef, num_nn, critic_std, actor_std,
           learning_rate, num_epoch_steps, seed, anneal_rate):
-    print('')
+    print('开始训练')
     # 配置超参数，这部分超参数固定在算法中
     total_timesteps = 100000  # How many steps you interact with the env
     num_env_steps = 128  # How many steps you interact with the env before an update
@@ -201,7 +201,7 @@ def train(env, name, action_space, target_kl, minibatch_size, gamma, ent_coef, v
             next_obs, reward, done, info = env.step(action.cpu(), m)  # 执行动作，状态转移，计算奖励
             cumu_rewards += reward  # 累计奖励
             if done == True:  # 回合终止
-                writer.add_scalar("cumulative rewards", cumu_rewards, global_step) # 在Tensorboard中记录累计奖励
+                writer.add_scalar("cumulative rewards", cumu_rewards, global_step)  # 在Tensorboard中记录累计奖励
                 print("global step:", global_step, "cumulative rewards:", cumu_rewards)
                 cumu_rewards = 0  # 清空累积奖励
             rewards[step] = torch.tensor(reward).to(device).view(-1)
@@ -296,6 +296,7 @@ def train(env, name, action_space, target_kl, minibatch_size, gamma, ent_coef, v
         writer.add_scalar("explained_variance", explained_var, global_step)
         writer.add_scalar("mean_value", values.mean().item(), global_step)
     writer.close()
+    print('结束训练')
 
 
 if __name__ == "__main__":

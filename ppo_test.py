@@ -301,7 +301,7 @@ if __name__ == "__main__":
     seed = args.seed
     anneal_rate = True
 
-    env = gym.make('CarRacing-v2')
+    env = gym.make("ALE/AirRaid-v5")
     # env.seed(env_seed)
 
     action_space = {'low': env.action_space.low,
