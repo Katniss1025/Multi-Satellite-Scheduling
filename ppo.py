@@ -3,12 +3,8 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.distributions.categorical import Categorical
 from torch.utils.tensorboard import SummaryWriter
 from torch.distributions.normal import Normal
-from einops import rearrange
-from einops.layers.torch import Rearrange
-import gym
 from env import MultiSatelliteEnv
 import argparse
 import utils
@@ -99,7 +95,6 @@ class Agent(nn.Module):
         probs = Normal(action_mean, action_std)
         if action is None:
             action = probs.sample()
-            action = scale_action(action, action_space)
         return action, probs.log_prob(action).sum(1), probs.entropy().sum(1), self.critic(feature)
 
 
@@ -138,16 +133,25 @@ def scale_action(action, action_space):
         # return action, logprob.sum(0), entropy.sum(0), self.critic(self.network(x))
 
 
-def train(env, name, action_space, target_kl, minibatch_size, gamma, ent_coef, vf_coef, num_nn, critic_std, actor_std,
-          learning_rate, num_epoch_steps, seed, anneal_rate):
+def train(env, name, action_space, args):
     print('开始训练')
     # 配置超参数，这部分超参数固定在算法中
-    total_timesteps = 100000  # How many steps you interact with the env
-    num_env_steps = 128  # How many steps you interact with the env before an update
-    num_update_steps = 4  # How many times you update the neural networks after interation
-    gae_lambda = 0.95  # Parameter in advantage estimation
-    max_grad_norm = 0.5  # max norm of the gradient vector
-    clip_coef = 0.2  # Parameter to clip the (p_new/p_old) ratio
+    total_timesteps = args.total_timesteps  # How many steps you interact with the env
+    num_env_steps =  args.num_env_steps  # How many steps you interact with the env before an update
+    num_update_steps = args.num_update_steps  # How many times you update the neural networks after interation
+    gae_lambda = args.gae_lambda  # Parameter in advantage estimation
+    max_grad_norm = args.max_grad_norm  # max norm of the gradient vector
+    clip_coef = args.clip_coef  # Parameter to clip the (p_new/p_old) ratio
+    gamma = args.gamma
+    norm_adv = args.norm_adv  # 是否对标准化优势
+    critic_std = args.critic_std
+    actor_std = args.actor_std
+    learning_rate = args.learning_rate
+    minibatch_size = args.minibatch_size
+    ent_coef = args.ent_coef
+    vf_coef = args.vf_coef
+    kl_target = args.kl_target
+
 
     writer = SummaryWriter('runs/' + name)  # 创建一个基于Tensorboard的writer对象，用于记录训练过程中的数据
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -160,6 +164,7 @@ def train(env, name, action_space, target_kl, minibatch_size, gamma, ent_coef, v
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
+    torch.use_deterministic_algorithms(True)
     torch.backends.cudnn.deterministic = True  # 使用固定随机数种子，从而保证实验结果可重现
 
     # Initialize storage for a round
@@ -170,7 +175,7 @@ def train(env, name, action_space, target_kl, minibatch_size, gamma, ent_coef, v
     dones = torch.zeros(num_env_steps).to(device)
     values = torch.zeros(num_env_steps).to(device)
     next_obs, m = env.reset()
-    next_obs = torch.Tensor(next_obs)  # torch.Tensor(env.reset()).to(device)
+    next_obs = torch.Tensor(next_obs).to(device)  # torch.Tensor(env.reset()).to(device)
     next_done = torch.zeros(1).to(device)
 
     global_step = 0  # 定义全局步数
@@ -189,8 +194,9 @@ def train(env, name, action_space, target_kl, minibatch_size, gamma, ent_coef, v
             dones[step] = next_done
 
             with torch.no_grad():  # 禁止梯度计算，减少内存占用和计算时间
-                print(step)
+                # print(step)
                 action, logprob, _, value = agent.get_action_and_value(next_obs.unsqueeze(0).unsqueeze(0))  # 采样历史数据
+                # action = scale_action(action, action_space)
 
             action = action.flatten()
             values[step] = value.flatten()
@@ -198,14 +204,17 @@ def train(env, name, action_space, target_kl, minibatch_size, gamma, ent_coef, v
             logprobs[step] = logprob
 
             # execute the game and log data.
-            next_obs, reward, done, info = env.step(action.cpu(), m)  # 执行动作，状态转移，计算奖励
+            next_obs, reward, done, info = env.step(action.cpu(), m, action_space)  # 执行动作，状态转移，计算奖励
             cumu_rewards += reward  # 累计奖励
             if done == True:  # 回合终止
                 writer.add_scalar("cumulative rewards", cumu_rewards, global_step)  # 在Tensorboard中记录累计奖励
                 print("global step:", global_step, "cumulative rewards:", cumu_rewards)
                 cumu_rewards = 0  # 清空累积奖励
             rewards[step] = torch.tensor(reward).to(device).view(-1)
-            next_obs, next_done = torch.Tensor(next_obs).to(device), torch.Tensor([done]).to(device)
+            try:
+                next_obs, next_done = torch.Tensor(next_obs).to(device), torch.Tensor([done]).to(device)
+            except:
+                print('error')
 
         # bootstrap value if not done
         with torch.no_grad():
@@ -256,8 +265,8 @@ def train(env, name, action_space, target_kl, minibatch_size, gamma, ent_coef, v
                     clipfracs += [((ratio - 1.0).abs() > clip_coef).float().mean().item()]
 
                 mb_advantages = b_advantages[mb_inds]
-                # if args.norm_adv:
-                #     mb_advantages = (mb_advantages - mb_advantages.mean()) / (mb_advantages.std() + 1e-8)
+                if norm_adv:  # Trick: Advantage Normalization
+                    mb_advantages = (mb_advantages - mb_advantages.mean()) / (mb_advantages.std() + 1e-8)
 
                 # Policy loss
                 pg_loss1 = - mb_advantages * ratio
@@ -280,6 +289,9 @@ def train(env, name, action_space, target_kl, minibatch_size, gamma, ent_coef, v
 
             # Annealing the learning rate, if KL is too high
             # TODO
+            if kl_target is not None:
+                if approx_kl > kl_target:
+                    break
 
         y_pred, y_true = b_values.cpu().numpy(), b_returns.cpu().numpy()
         var_y = np.var(y_true)
@@ -287,6 +299,9 @@ def train(env, name, action_space, target_kl, minibatch_size, gamma, ent_coef, v
 
         # 记录指标并关闭writer
         # TRY NOT TO MODIFY: record rewards for plotting purposes
+        for name, param in agent.named_parameters():
+            writer.add_histogram(name+'_grad', param.grad, global_step)
+            writer.add_histogram(name+'_data', param, global_step)
         writer.add_scalar("learning_rate", optimizer.param_groups[0]["lr"], global_step)
         writer.add_scalar("value_loss", v_loss.item(), global_step)
         writer.add_scalar("policy_loss", pg_loss.item(), global_step)
@@ -301,19 +316,19 @@ def train(env, name, action_space, target_kl, minibatch_size, gamma, ent_coef, v
 
 if __name__ == "__main__":
 
-    target_kl = [0.02]
-    minibatch_size = [32]  # The batch size to update the neural network
-    gamma = [0.9]
-    ent_coef = [0.001]  # Weight of the entropy loss in the total loss
-    vf_coef = [0.5]  # Weight of the value loss in the total loss
-    num_nn = [128]
-    critic_std = [1]
-    actor_std = [0.01]
-    learning_rate = [5e-4]
-    env_seed = 12315  # 环境中使用的随机数种子
+    # target_kl = [0.02]
+    # minibatch_size = [32]  # The batch size to update the neural network
+    # gamma = [0.9]
+    # ent_coef = [0.001]  # Weight of the entropy loss in the total loss
+    # vf_coef = [0.5]  # Weight of the value loss in the total loss
+    # num_nn = [128]
+    # critic_std = [1]
+    # actor_std = [0.01]
+    # learning_rate = [5e-4]
+    # env_seed = 12315  # 环境中使用的随机数种子
 
     args = get_args()
-    num_nn = [args.num_nn]
+    num_nn = args.num_nn
     n_sat = args.n_sat
     n_pix = args.npix
     t = args.t
@@ -324,23 +339,30 @@ if __name__ == "__main__":
 
     num_epoch_steps = args.num_epoch_steps
     seed = args.seed
-    anneal_rate = True
+    anneal_rate = args.anneal_rate
+    norm_adv = args.norm_adv
 
     env = MultiSatelliteEnv(n_sat, n_pix, t, state_size, action_space, num_epoch_steps)
-    env.seed(env_seed)
+    env.seed(args.seed)
 
-    # 对部分超参数进行网格搜索
-    for tk in target_kl:
-        for bs in minibatch_size:
-            for ga in gamma:
-                for ef in ent_coef:
-                    for vf in vf_coef:
-                        for num in num_nn:
-                            for cstd in critic_std:
-                                for astd in actor_std:
-                                    for lr in learning_rate:
-                                        name = 'tk' + str(tk) + '_bs' + str(bs) + '_ga' + str(ga) + '_ef' + str(
-                                            ef) + '_vf' + str(vf) + '_num' + str(num) + '_cs' + str(cstd) + '_as' + str(
-                                            astd) + '_lr' + str(lr) + time.strftime('%Y%m%d_%H:%M:%S', time.localtime(int(round(time.time()*1000))/1000))
-                                        train(env, name, action_space, tk, bs, ga, ef, vf, num, cstd, astd, lr,
-                                              num_epoch_steps, seed, anneal_rate)
+    name = 'tk' + str(args.kl_target) + '_bs' + str(args.minibatch_size) + '_ga' + str(args.gamma) + '_ef' + str(
+        args.ent_coef) + '_vf' + str(args.vf_coef) + '_num' + str(args.num_nn) + '_cs' + str(args.critic_std) + '_as' + str(
+        args.actor_std) + '_lr' + str(args.learning_rate) + time.strftime('%Y%m%d_%H:%M:%S',
+                                                time.localtime(int(round(time.time() * 1000)) / 1000))
+    train(env, name, action_space, args)
+
+    # # 对部分超参数进行网格搜索
+    # for tk in target_kl:
+    #     for bs in minibatch_size:
+    #         for ga in gamma:
+    #             for ef in ent_coef:
+    #                 for vf in vf_coef:
+    #                     for num in num_nn:
+    #                         for cstd in critic_std:
+    #                             for astd in actor_std:
+    #                                 for lr in learning_rate:
+    #                                     name = 'tk' + str(tk) + '_bs' + str(bs) + '_ga' + str(ga) + '_ef' + str(
+    #                                         ef) + '_vf' + str(vf) + '_num' + str(num) + '_cs' + str(cstd) + '_as' + str(
+    #                                         astd) + '_lr' + str(lr) + time.strftime('%Y%m%d_%H:%M:%S', time.localtime(int(round(time.time()*1000))/1000))
+    #                                     train(env, name, action_space, tk, bs, ga, ef, vf, num, cstd, astd, lr,
+    #                                           num_epoch_steps, seed, anneal_rate, args)

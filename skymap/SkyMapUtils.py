@@ -19,7 +19,7 @@ def read_a_skymap(event=None, random=True):
             cell = ws.cell(row=i + 2, column=1)
             eventID.append(cell.value)
         event = eventID[np.random.randint(len(eventID))]  # 从57条数据中随机选择一条
-    data_ring, h = healpy.read_map(root + '/data/SkyMap/Flat/'+event+'_Flat.fits.gz', h=True)
+    data_ring, h = healpy.read_map(root + '/data/SkyMap/Flat/'+event+'_Flat.fits.gz', h=True, field=0)
     data_nest = healpy.read_map(root + '/data/SkyMap/Flat/'+event+'_Flat.fits.gz', nest=True)
     return data_ring, h, event, data_nest
 

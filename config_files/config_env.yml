@@ -17,7 +17,7 @@ state_size:
 
 npix: 196608
 t: 1000
-num_epoch_steps: 1000
+
 
 #seed
 seed: 12315
@@ -26,7 +26,7 @@ seed: 12315
 nside_std: 128
 
 #ppo
-kl_target: 0.1
+kl_target: 0.02
 minibatch_size: 32
 gamma: 0.9
 ent_coef: 0.001
@@ -34,6 +34,16 @@ vf_coef: 0.5
 num_nn: 128
 critic_std: 1
 actor_std: 0.01
-learning_rate: 5e-4
+learning_rate: 5.0e-4
 env_seed: 12315
+num_epoch_steps: 1000
+total_timesteps: 1000000
+num_env_steps: 128
+num_update_steps: 4
+gae_lambda: 0.95
+max_grad_norm: 0.5
+clip_coef: 0.2
 
+# Trick
+norm_adv: True
+anneal_rate: True

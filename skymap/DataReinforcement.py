@@ -27,11 +27,14 @@ def data_reinforcement_by_rotate():
     ws = wb['Sheet1']
     eventID = []
     nrow = ws.max_row
-    for i in range(nrow-1):
-        cell = ws.cell(row=i+2, column=1)
+    for i in range(nrow - 1):
+        cell = ws.cell(row=i + 2, column=1)
         eventID.append(cell.value)
     event = eventID[np.random.randint(len(eventID))]  # 从57条数据中随机选择一条
-    data, h = healpy.read_map(root + '/data/SkyMap/Flat/'+event+'_Flat.fits.gz', h=True)
+    try:
+        data, h = healpy.read_map(root + '/data/SkyMap/Flat/' + event + '_Flat.fits.gz', h=True)
+    except:
+        print('error')
     # h = dict(h)
     # nside = h['NSIDE']
 

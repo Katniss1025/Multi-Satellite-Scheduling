@@ -1,7 +1,5 @@
 import random
-
 import numpy
-
 from skymap.probUtils import integrated_prob_in_a_circle
 import gym
 import numpy as np
@@ -10,6 +8,19 @@ import healpy as hp
 from utils import get_args
 import torch
 from time_dist_simulation.test import sample
+
+
+def scale_action(action, action_space):
+    ''' 将tanh激活的action线性映射到赤经和赤纬 [-1,1]->[0,360]/[-90,90]
+    Args:
+        action_tahn(tensor): 被tanh激活的action
+        action_space(dict): 自定义的动作空间的信息
+    Returns:
+        action_scaled(tensor): 映射后的action
+    '''
+    action_tahn = torch.tanh(action)
+    action_scaled = (action_tahn + 1) / 2 * (action_space['high'] - action_space['low']) + action_space['low']
+    return action_scaled
 
 
 class MultiSatelliteEnv(gym.Env):
@@ -61,6 +72,7 @@ class MultiSatelliteEnv(gym.Env):
         from skymap.DataReinforcement import data_reinforcement_by_rotate
         self.state = np.zeros(self.state.shape)  # [len(m), 2]
         m, m_rotated_area_90, m_rotated_area_50 = data_reinforcement_by_rotate()
+
         # 转换为二维图像
         from skymap import SkyMapUtils as smu
         # smu.visualize(m)
@@ -73,12 +85,15 @@ class MultiSatelliteEnv(gym.Env):
         self.state = (self.state-np.min(self.state)) / (np.max(self.state)-np.min(self.state))
 
         self.current_step = 0
+        # if np.any(np.isnan(self.state)):
+        #     pdb.set_trace()
         return self.state, m
 
-    def step(self, action, m):
+    def step(self, action, m, action_space):
         reward = 0
         ipix_total = np.array([])
-        prob = self.state  # TODO
+        self.state = self.state  # TODO
+        action = scale_action(action, action_space)
         action = action.reshape(2, -1).T
         # 更新状态
         # 计算
@@ -104,7 +119,8 @@ class MultiSatelliteEnv(gym.Env):
 
         # 判断是否达到终止条件 TODO
         if self.current_step >= self.max_num_steps:  # 终止条件
-            return self.reset(), reward, True, {}  # 已经终止
+            self.state = self.reset()[0]
+            return self.state, reward, True, {}  # 已经终止
         return self.state, reward, False, {}  # 未终止
 
     def render(self, mode):
