@@ -1,3 +1,4 @@
+import os
 import random
 import numpy as np
 import torch
@@ -9,6 +10,8 @@ from env import MultiSatelliteEnv
 import argparse
 import utils
 import time
+import yaml
+from pathlib import Path
 
 
 def get_args():
@@ -98,6 +101,22 @@ class Agent(nn.Module):
         return action, probs.log_prob(action).sum(1), probs.entropy().sum(1), self.critic(feature)
 
 
+def save_model(agent, fpath):
+    # create path
+    Path(fpath+'/model').mkdir(parents=True, exist_ok=True)
+    # save model
+    torch.save({'agent_network_dict': agent.network.state_dict(),
+                'agent_critic_dict': agent.critic.state_dict(),
+                'agent_actor_dict': agent.actor_mean.state_dict()}, f"{fpath}/model/checkpoint"+time.strftime('%Y%m%d_%H:%M:%S', time.localtime(int(round(time.time() * 1000)) / 1000))+".pt")
+
+
+def load_model(agent, fpath):
+    checkpoint = torch.load(f"{fpath}/checkpoint.pt", map_location=torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+    agent.network.load_state_dict(checkpoint['policy_state_dict'])
+    agent.critic.load_state_dict(checkpoint['critic_state_dict'])
+    agent.critic_target.load_state_dict(checkpoint['critic_target_state_dict'])
+
+
 def clip_action(action, action_space):
     '''非法动作剪裁
 
@@ -122,16 +141,6 @@ def scale_action(action, action_space):
     action_scaled = (action_tahn + 1) / 2 * (action_space['high'] - action_space['low']) + action_space['low']
     return action_scaled
 
-        #
-        # logits = self.actor(self.network(x))  # 尺寸为(1,nsat*动作空间尺寸)
-        # split_logits = torch.split(logits, self.action_space, dim=1)  # 拆分logits为块，每块儿为action_space大小
-        # multi_categoricals = [Categorical(logits=logits) for logits in split_logits]  # 分类，决定采取哪个动作
-        # if action is None:
-        #     action = torch.stack([categorical.sample() for categorical in multi_categoricals]).T  # 对每个卫星输出动作的采样结果
-        # logprob = torch.stack([categorical.log_prob(a) for a, categorical in zip(action.T, multi_categoricals)])  # 输出采样的得到动作的对数概率
-        # entropy = torch.stack([categorical.entropy() for categorical in multi_categoricals]).T  # 计算交叉熵
-        # return action, logprob.sum(0), entropy.sum(0), self.critic(self.network(x))
-
 
 def train(env, name, action_space, args):
     print('开始训练')
@@ -151,6 +160,7 @@ def train(env, name, action_space, args):
     ent_coef = args.ent_coef
     vf_coef = args.vf_coef
     kl_target = args.kl_target
+    save_frequency = args.save_frequency
 
 
     writer = SummaryWriter('runs/' + name)  # 创建一个基于Tensorboard的writer对象，用于记录训练过程中的数据
@@ -298,10 +308,9 @@ def train(env, name, action_space, args):
         explained_var = np.nan if var_y == 0 else 1 - np.var(y_true - y_pred) / var_y
 
         # 记录指标并关闭writer
-        # TRY NOT TO MODIFY: record rewards for plotting purposes
-        for name, param in agent.named_parameters():
-            writer.add_histogram(name+'_grad', param.grad, global_step)
-            writer.add_histogram(name+'_data', param, global_step)
+        # for name, param in agent.named_parameters():
+        #     writer.add_histogram(name+'_grad', param.grad, global_step)
+        #     writer.add_histogram(name+'_data', param, global_step)
         writer.add_scalar("learning_rate", optimizer.param_groups[0]["lr"], global_step)
         writer.add_scalar("value_loss", v_loss.item(), global_step)
         writer.add_scalar("policy_loss", pg_loss.item(), global_step)
@@ -310,6 +319,13 @@ def train(env, name, action_space, args):
         writer.add_scalar("clipfrac", np.mean(clipfracs), global_step)
         writer.add_scalar("explained_variance", explained_var, global_step)
         writer.add_scalar("mean_value", values.mean().item(), global_step)
+
+        if global_step % save_frequency == 0:
+            save_model(agent, os.getcwd() + '/runs/' + name)
+
+    if total_timesteps % save_frequency != 0:
+        save_model(agent, os.getcwd() + '/runs/' + name)
+
     writer.close()
     print('结束训练')
 
@@ -345,10 +361,13 @@ if __name__ == "__main__":
     env = MultiSatelliteEnv(n_sat, n_pix, t, state_size, action_space, num_epoch_steps)
     env.seed(args.seed)
 
-    name = 'tk' + str(args.kl_target) + '_bs' + str(args.minibatch_size) + '_ga' + str(args.gamma) + '_ef' + str(
-        args.ent_coef) + '_vf' + str(args.vf_coef) + '_num' + str(args.num_nn) + '_cs' + str(args.critic_std) + '_as' + str(
-        args.actor_std) + '_lr' + str(args.learning_rate) + time.strftime('%Y%m%d_%H:%M:%S',
-                                                time.localtime(int(round(time.time() * 1000)) / 1000))
+    name = 'ppo' + time.strftime('%Y%m%d_%H:%M:%S', time.localtime(int(round(time.time() * 1000)) / 1000))
+
+    # 将yaml参数写入结果中
+    Path('runs/'+name).mkdir(parents=True, exist_ok=True)
+    with open('runs/'+name+'/config.yaml', 'w') as file:
+        file.write(yaml.dump(args))
+
     train(env, name, action_space, args)
 
     # # 对部分超参数进行网格搜索

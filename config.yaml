@@ -1,0 +1,38 @@
+!!python/object:argparse.Namespace
+actor_std: 0.01
+anneal_rate: true
+clip_coef: 0.2
+config_file: config_env.yml
+critic_std: 1
+dataset_name: env
+ent_coef: 0.001
+env_seed: 12315
+gae_lambda: 0.95
+gamma: 0.9
+kl_target: 0.02
+learning_rate: 0.0005
+max_grad_norm: 0.5
+minibatch_size: 32
+n_actions: 2
+n_sat: 2
+n_state: 3
+norm_adv: true
+npix: 196608
+nside_std: 128
+num_env_steps: 128
+num_epoch_steps: 1000
+num_nn: 128
+num_update_steps: 4
+satA_num: 108
+satB_num: 9
+satC_num: 9
+sat_num: 126
+save_frequency: 10240
+seed: 12315
+state_size:
+  inr: null
+  sat: null
+  task: 1
+t: 1000
+total_timesteps: 1000000
+vf_coef: 0.5

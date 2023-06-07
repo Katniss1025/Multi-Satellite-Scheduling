@@ -43,6 +43,7 @@ num_update_steps: 4
 gae_lambda: 0.95
 max_grad_norm: 0.5
 clip_coef: 0.2
+save_frequency: 10240
 
 # Trick
 norm_adv: True

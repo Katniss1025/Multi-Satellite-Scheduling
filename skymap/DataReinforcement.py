@@ -1,4 +1,5 @@
 import os
+import pdb
 
 import healpy
 import numpy as np
@@ -26,6 +27,7 @@ def data_reinforcement_by_rotate():
     wb = openpyxl.load_workbook(root + '/data/eventID.xlsx')
     ws = wb['Sheet1']
     eventID = []
+    data = []
     nrow = ws.max_row
     for i in range(nrow - 1):
         cell = ws.cell(row=i + 2, column=1)
@@ -34,6 +36,7 @@ def data_reinforcement_by_rotate():
     try:
         data, h = healpy.read_map(root + '/data/SkyMap/Flat/' + event + '_Flat.fits.gz', h=True)
     except:
+        pdb.set_trace()
         print('error')
     # h = dict(h)
     # nside = h['NSIDE']
