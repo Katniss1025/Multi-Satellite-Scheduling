@@ -119,7 +119,7 @@ class MultiSatelliteEnv(gym.Env):
 
         # 判断是否达到终止条件 TODO
         if self.current_step >= self.max_num_steps:  # 终止条件
-            self.state = self.reset()[0]
+            # self.state, m = self.reset()
             return self.state, reward, True, {}  # 已经终止
         return self.state, reward, False, {}  # 未终止
 

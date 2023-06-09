@@ -44,15 +44,7 @@ class Agent(nn.Module):
             # nn.ReLU(),
             nn.Flatten(),  # 将卷积层输出的多维数据展平为向量
         )
-        # self.network = nn.Sequential(
-        #     Rearrange('b d -> b 1 d'),  # 将形状为(batch size, dim)的输入x进行变换，转换为形状为(batch size, 1, dim)的张量
-        #     nn.Conv1d(in_channels=1, out_channels=2, kernel_size=7, stride=7, padding=3),  # 3个一维卷积层，每层包含一个卷积操作、ReLU激活函数和padding操作
-        #     nn.ReLU(),
-        #     nn.Conv1d(in_channels=2, out_channels=4, kernel_size=7, stride=7, padding=3),
-        #     nn.ReLU(),
-        #     nn.Conv1d(in_channels=4, out_channels=8, kernel_size=7, stride=7, padding=3),
-        #     nn.Flatten(),  # 将卷积层输出的多维数据展平为向量
-        # )
+
         self.action_space = action_space
         self.critic = nn.Sequential(  # critic网络，2个线性层，输入尺寸为352，输出尺寸为1
             layer_init(nn.Linear(352, num_nn)),  # np.array(env.observation_space.shape).prod()
@@ -80,7 +72,7 @@ class Agent(nn.Module):
         '''
         return self.critic(self.network(x))
 
-    def get_action_and_value(self, x, action=None):
+    def get_action_and_value(self, x, action=None, mode='train'):
         ''' 选取动作或计算状态价值
         Args:
             x: 状态
@@ -96,8 +88,11 @@ class Agent(nn.Module):
         action_logstd = self.actor_logstd.expand_as(action_mean)  # 将actor_logstd扩张到action_mean形状
         action_std = torch.exp(action_logstd)
         probs = Normal(action_mean, action_std)
-        if action is None:
-            action = probs.sample()
+        if mode == 'train':
+            if action is None:
+                action = probs.sample()
+        elif mode == 'test':
+            action = action_mean
         return action, probs.log_prob(action).sum(1), probs.entropy().sum(1), self.critic(feature)
 
 
@@ -111,10 +106,11 @@ def save_model(agent, fpath):
 
 
 def load_model(agent, fpath):
-    checkpoint = torch.load(f"{fpath}/checkpoint.pt", map_location=torch.device("cuda" if torch.cuda.is_available() else "cpu"))
-    agent.network.load_state_dict(checkpoint['policy_state_dict'])
-    agent.critic.load_state_dict(checkpoint['critic_state_dict'])
-    agent.critic_target.load_state_dict(checkpoint['critic_target_state_dict'])
+    checkpoint = torch.load(f"{fpath}", map_location=torch.device("cuda" if torch.cuda.is_available() else "cpu"))
+    agent.network.load_state_dict(checkpoint['agent_network_dict'])
+    agent.critic.load_state_dict(checkpoint['agent_critic_dict'])
+    agent.actor_mean.load_state_dict(checkpoint['agent_actor_dict'])
+    return agent
 
 
 def clip_action(action, action_space):
@@ -217,6 +213,7 @@ def train(env, name, action_space, args):
             next_obs, reward, done, info = env.step(action.cpu(), m, action_space)  # 执行动作，状态转移，计算奖励
             cumu_rewards += reward  # 累计奖励
             if done == True:  # 回合终止
+                next_obs, m = env.reset()  # 重新初始化环境
                 writer.add_scalar("cumulative rewards", cumu_rewards, global_step)  # 在Tensorboard中记录累计奖励
                 print("global step:", global_step, "cumulative rewards:", cumu_rewards)
                 cumu_rewards = 0  # 清空累积奖励
@@ -330,6 +327,42 @@ def train(env, name, action_space, args):
     print('结束训练')
 
 
+def Test(env, name, action_space, args):
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    agent = Agent(env, action_space, args.num_nn, args.critic_std, args.actor_std).to(device)
+    agent = load_model(agent, args.model_path)
+    rewards = []
+    steps = []
+    actions = []
+    skymap = []
+    print('开始测试')
+
+    for i_ep in range(0, args.test_eps):
+        next_state, m = env.reset()
+        skymap.append(m)  # 记录skymap
+        ep_reward = 0
+        ep_step = 0
+        ep_actions = []
+        terminated = False
+        while not terminated:  # 如果回合不终止
+            with torch.no_grad():
+                action, logprob, _, value = agent.get_action_and_value(next_state.unsqueeze(0).unsqueeze(0), mode=args.mode)  # 计算动作
+            ep_actions.append(action.tolist()[0])  # 记录每一步动作
+            next_state, reward, terminated, _ = env.step(action.cpu(), m, action_space)  # 采取动作
+            next_state = torch.Tensor(next_state).to(device)
+            ep_reward += reward  # 回合累计奖励
+            ep_step += 1  # 统计回合步数
+            if terminated:
+                break
+        # 记录每一回合的信息
+        steps.append(ep_step)
+        rewards.append(ep_reward)
+        actions.append(ep_actions)
+        print(f"回合：{i_ep + 1}/{args.test_eps}，奖励：{ep_reward:.2f}")
+    print('测试完成')
+    return {'rewards': rewards, 'steps': steps, 'skymap': skymap, 'actions': actions}
+
+
 if __name__ == "__main__":
 
     # target_kl = [0.02]
@@ -357,19 +390,24 @@ if __name__ == "__main__":
     seed = args.seed
     anneal_rate = args.anneal_rate
     norm_adv = args.norm_adv
+    mode = args.mode
 
     env = MultiSatelliteEnv(n_sat, n_pix, t, state_size, action_space, num_epoch_steps)
     env.seed(args.seed)
 
-    name = 'ppo' + time.strftime('%Y%m%d_%H:%M:%S', time.localtime(int(round(time.time() * 1000)) / 1000))
+    name = 'ppo_' + mode + '_' + time.strftime('%Y%m%d_%H:%M:%S', time.localtime(int(round(time.time() * 1000)) / 1000))
 
     # 将yaml参数写入结果中
     Path('runs/'+name).mkdir(parents=True, exist_ok=True)
     with open('runs/'+name+'/config.yaml', 'w') as file:
         file.write(yaml.dump(args))
 
-    train(env, name, action_space, args)
-
+    if mode == 'train':
+        train(env, name, action_space, args)
+    elif mode == 'test':
+        print(args.model_path)
+        res_dict = Test(env, name, action_space, args)
+        print('test')
     # # 对部分超参数进行网格搜索
     # for tk in target_kl:
     #     for bs in minibatch_size:
