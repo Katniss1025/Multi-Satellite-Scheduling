@@ -83,6 +83,7 @@ class MultiSatelliteEnv(gym.Env):
 
         # 对概率这一维度进行标准化处理
         self.state = (self.state-np.min(self.state)) / (np.max(self.state)-np.min(self.state))
+        m = (m-np.min(m)) / (np.max(m) - np.min(m))
 
         self.current_step = 0
         # if np.any(np.isnan(self.state)):
@@ -112,7 +113,7 @@ class MultiSatelliteEnv(gym.Env):
         # self.state[int(len(self.state)/2)+ipix_total] += 10  # 时长状态
 
         # 更新reward
-        reward += np.sum(m[ipix_total] * 10)  # 随任务修改 当前reward为 概率*时长
+        reward += np.sum(m[ipix_total] )  # 随任务修改 当前reward为 概率*时长
 
         # 更新步数
         self.current_step += 1

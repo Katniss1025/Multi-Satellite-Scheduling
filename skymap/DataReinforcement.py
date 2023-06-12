@@ -36,8 +36,7 @@ def data_reinforcement_by_rotate():
     try:
         data, h = healpy.read_map(root + '/data/SkyMap/Flat/' + event + '_Flat.fits.gz', h=True)
     except:
-        pdb.set_trace()
-        print('error')
+        data, h = healpy.read_map(root + '/data/SkyMap/Flat/' + event + '_Flat.fits.gz', h=True)
     # h = dict(h)
     # nside = h['NSIDE']
 

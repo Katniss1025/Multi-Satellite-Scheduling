@@ -34,27 +34,29 @@ class Agent(nn.Module):
         super().__init__()
         # 卷积层
         self.network = nn.Sequential(
-            nn.Conv2d(in_channels=1, out_channels=2, kernel_size=3, stride=3, padding=0),
+            nn.Conv2d(in_channels=1, out_channels=2, kernel_size=3, stride=2, padding=0),
             nn.ReLU(),
-            nn.Conv2d(in_channels=2, out_channels=4, kernel_size=3, stride=3, padding=0),
+            nn.Conv2d(in_channels=2, out_channels=4, kernel_size=3, stride=2, padding=0),
             nn.ReLU(),
-            nn.Conv2d(in_channels=4, out_channels=8, kernel_size=3, stride=3, padding=0),
+            nn.Conv2d(in_channels=4, out_channels=8, kernel_size=3, stride=2, padding=0),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=3, stride=1, padding=0),
             # nn.ReLU(),
             nn.Flatten(),  # 将卷积层输出的多维数据展平为向量
+            layer_init(nn.Linear(6384, 1024)),
+            nn.ReLU(),
         )
 
         self.action_space = action_space
         self.critic = nn.Sequential(  # critic网络，2个线性层，输入尺寸为352，输出尺寸为1
-            layer_init(nn.Linear(352, num_nn)),  # np.array(env.observation_space.shape).prod()
+            layer_init(nn.Linear(1024, num_nn)),  # np.array(env.observation_space.shape).prod()
             nn.ReLU(),
             layer_init(nn.Linear(num_nn, num_nn)),
             nn.ReLU(),
             layer_init(nn.Linear(num_nn, 1), std=critic_std),
         )
         self.actor_mean = nn.Sequential(
-            layer_init(nn.Linear(352, num_nn)),  # np.array(env.observation_space.shape).prod()
+            layer_init(nn.Linear(1024, num_nn)),  # np.array(env.observation_space.shape).prod()
             nn.ReLU(),
             layer_init(nn.Linear(num_nn, num_nn)),
             nn.ReLU(),
@@ -239,7 +241,8 @@ def train(env, name, action_space, args):
                 else:
                     nextnonterminal = 1.0 - dones[t + 1]
                     nextvalues = values[t + 1]
-                delta = rewards[t] + gamma * nextvalues * nextnonterminal - values[t]
+                td_target = rewards[t] + gamma * nextvalues * nextnonterminal
+                delta = td_target - values[t]
                 advantages[t] = lastgaelam = delta + gamma * gae_lambda * nextnonterminal * lastgaelam
             returns = advantages + values
 
@@ -290,6 +293,8 @@ def train(env, name, action_space, args):
 
                 # Total loss
                 entropy_loss = entropy.mean()
+                if entropy_loss < 0:
+                    print("test")
                 loss = pg_loss - ent_coef * entropy_loss + v_loss * vf_coef
 
                 # Update the neural networks
