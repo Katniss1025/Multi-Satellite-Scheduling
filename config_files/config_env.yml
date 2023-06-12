@@ -46,7 +46,7 @@ clip_coef: 0.2
 save_frequency: 10240
 mode: train
 test_eps: 20
-model_path: runs/ppo20230606_20:43:58/model/checkpoint20230606_22:43:49.pt
+model_path: runs/ppo_train_20230608_23:09:37/model/checkpoint20230609_03:38:02.pt
 
 # Trick
 norm_adv: True

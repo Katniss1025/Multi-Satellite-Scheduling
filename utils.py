@@ -19,3 +19,10 @@ def get_args():
     parser.add_argument('--dataset-name', dest='dataset_name', default='env')
     args = read_config_file(parser)
     return args
+
+
+# def log_util(fpath):
+#     import time
+#     with open(fpath, 'w') as f:
+#         str = time.strftime('%Y%m%d_%H:%M:%S', time.localtime(int(round(time.time() * 1000)) / 1000))
+#         f.write(str+"\n")

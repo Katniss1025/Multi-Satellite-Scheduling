@@ -97,6 +97,10 @@ class Agent(nn.Module):
 
 
 def save_model(agent, fpath):
+    '''
+    agent: 模型
+    fpath(str): 存储路径
+    '''
     # create path
     Path(fpath+'/model').mkdir(parents=True, exist_ok=True)
     # save model
@@ -321,7 +325,7 @@ def train(env, name, action_space, args):
             save_model(agent, os.getcwd() + '/runs/' + name)
 
     if total_timesteps % save_frequency != 0:
-        save_model(agent, os.getcwd() + '/runs/' + name)
+        save_model(agent=agent, fpath=os.getcwd() + '/runs/' + name)
 
     writer.close()
     print('结束训练')
@@ -345,11 +349,11 @@ def Test(env, name, action_space, args):
         ep_actions = []
         terminated = False
         while not terminated:  # 如果回合不终止
+            next_state = torch.Tensor(next_state).to(device)
             with torch.no_grad():
                 action, logprob, _, value = agent.get_action_and_value(next_state.unsqueeze(0).unsqueeze(0), mode=args.mode)  # 计算动作
-            ep_actions.append(action.tolist()[0])  # 记录每一步动作
+            ep_actions.append(scale_action(action, action_space).tolist()[0])  # 记录每一步动作
             next_state, reward, terminated, _ = env.step(action.cpu(), m, action_space)  # 采取动作
-            next_state = torch.Tensor(next_state).to(device)
             ep_reward += reward  # 回合累计奖励
             ep_step += 1  # 统计回合步数
             if terminated:
@@ -360,6 +364,7 @@ def Test(env, name, action_space, args):
         actions.append(ep_actions)
         print(f"回合：{i_ep + 1}/{args.test_eps}，奖励：{ep_reward:.2f}")
     print('测试完成')
+    save_model(agent, os.getcwd() + '/runs/' + name)
     return {'rewards': rewards, 'steps': steps, 'skymap': skymap, 'actions': actions}
 
 
