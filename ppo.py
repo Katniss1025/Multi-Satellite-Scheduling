@@ -177,7 +177,7 @@ def train(env, name, action_space, args):
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.use_deterministic_algorithms(True)
-    torch.backends.cudnn.deterministic = True  # 使用固定随机数种子，从而保证实验结果可重现
+    # torch.backends.cudnn.deterministic = True  # 使用固定随机数种子，从而保证实验结果可重现
 
     # Initialize storage for a round
     obs = torch.zeros((num_env_steps, env.observation_space.shape[0], env.observation_space.shape[1])).to(device)  # 初始化一个tensor，用于存储观测值

@@ -2,8 +2,12 @@ import numpy as np
 
 
 def equatorial_to_cartesian(ra, dec):
-    ra = ra * np.pi / 180
-    dec = dec * np.pi / 180
+    """
+    ra(float): 赤经 (degree)
+    dec(float):赤纬 (degree)
+    """
+    ra = np.deg2rad(ra)
+    dec = np.deg2rad(dec)
     x = np.cos(ra) * np.cos(dec)
     y = np.sin(ra) * np.cos(dec)
     z = np.sin(dec)
@@ -26,6 +30,9 @@ def equatorial_to_cartesian(ra, dec):
 
 
 def calRotMat(axis, angle):
+    '''
+    angle: in radius
+    '''
     if axis == 'x':
         rot_mat = np.array([[1, 0, 0], [0, np.cos(angle), -np.sin(angle)], [0, np.sin(angle), np.cos(angle)]])
     elif axis == 'y':
@@ -58,10 +65,10 @@ def rotate(ras, decs):
     z_rotated = np.zeros_like(ras, dtype=float)
 
     # 计算旋转矩阵 axis=0：绕x,axis=1：绕y，axis=2：绕z.
-    rotMat = np.ones([3, 3])
-    for i in np.arange(len(axises)):
+    rotMat = 1
+    for i in len(axises) - 1 - np.arange(len(axises)):
         temp = calRotMat(axises[i], angle[i])
-        rotMat = temp * rotMat
+        rotMat = np.dot(rotMat, temp)
 
     # 计算旋转后的三维坐标
     for i in range(x.shape[0]):
@@ -78,5 +85,64 @@ def rotate(ras, decs):
     ras_rotated[ras_rotated < 0] += 360  # 从(-180,180)映射到(0,360)的赤经表示
     decs_rotated = np.clip(decs_rotated.reshape(ras.shape), -90, 90)
     # 根据旋转后的赤经赤纬对概率进行插值
+
+    return ras_rotated, decs_rotated, tag
+
+
+def rotate_to_origin(ras, decs, hra, hdec):
+    '''
+    Args：
+        ras(array):赤经数组，degree [0,360]
+        decs(array):赤纬数组，degree [-90,90]
+        hra(float):基准点赤经，degree
+        hdec(float):基准点赤纬，degree
+    Returns:
+        ras_rotated(array): 旋转后的赤经 [-180,180]
+        decs_rotated(array): 选钻后的赤纬 [-90,90]
+        tag(str): 记录旋转信息
+    '''
+
+
+    axises = ['z','y' ]  # x, y, z分别对应的数字
+    angle = [hra, -hdec]
+    # 旋转信息
+    tag = ''
+    for i in np.arange(len(axises)):
+        tag = tag + " " + axises[i] + ':' + str(angle[i])
+    angle = np.deg2rad(angle)
+
+    # 将赤经赤纬（角度）转换为弧度，再转换成三维坐标
+    [x, y, z] = equatorial_to_cartesian(ras, decs)
+
+    # 初始化旋转后的坐标
+    x_rotated = np.zeros_like(ras, dtype=float)
+    y_rotated = np.zeros_like(ras, dtype=float)
+    z_rotated = np.zeros_like(ras, dtype=float)
+
+    # 计算旋转矩阵
+    rotMat = 1
+    for i in np.arange(len(axises)):
+        temp = calRotMat(axises[i], angle[i])
+        rotMat = np.dot(rotMat, temp)
+
+    rotMat = rotMat.T
+
+    [xh, yh, zh] = equatorial_to_cartesian(hra, hdec)
+    [xh_r, yh_r, zh_r] = np.dot(rotMat, [xh, yh, zh])
+    print([xh_r, yh_r, zh_r])
+    # 计算旋转后的三维坐标
+    for i in range(x.shape[0]):
+        x_rotated[i], y_rotated[i], z_rotated[i] = np.dot(rotMat, [x[i], y[i], z[i]])
+    # 将三维坐标转换为弧度
+    ra_rad_rot = np.arctan2(y_rotated, x_rotated)
+    dec_rad_rot = np.arctan2(z_rotated, np.sqrt(x_rotated ** 2 + y_rotated ** 2))
+
+    # 将弧度转换为赤经赤纬
+    ras_rotated = np.round(ra_rad_rot * 180 / np.pi, 10)
+    decs_rotated = np.round(dec_rad_rot * 180 / np.pi, 10)
+    # 将旋转后的赤经赤纬映射到新的矩阵中
+    ras_rotated = np.clip(ras_rotated.reshape(ras.shape), -180, 180)
+    # ras_rotated[ras_rotated < 0] += 360  # 从(-180,180)映射到(0,360)的赤经表示
+    decs_rotated = np.clip(decs_rotated.reshape(ras.shape), -90, 90)
 
     return ras_rotated, decs_rotated, tag

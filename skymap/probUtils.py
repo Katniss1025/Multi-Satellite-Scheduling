@@ -57,6 +57,6 @@ def integrated_prob_in_a_circle(ra, dec, radius, hpx, nside):
 def find_highest_prob_pixel(hpx, nside):
     ipix_max = np.argmax(hpx)
     theta, phi = hp.pix2ang(nside, ipix_max)
-    ra = np.rad2deg(phi)
-    dec = np.rad2deg(0.5 * np.pi - theta)
+    ra = np.rad2deg(phi)  # in degree
+    dec = np.rad2deg(0.5 * np.pi - theta)  # in degree
     return [ra, dec]
