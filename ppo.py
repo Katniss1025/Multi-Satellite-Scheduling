@@ -12,6 +12,7 @@ import utils
 import time
 import yaml
 from pathlib import Path
+from Normalization import RewardScaling
 
 
 def get_args():
@@ -168,6 +169,10 @@ def train(env, name, action_space, args):
     writer = SummaryWriter('runs/' + name)  # 创建一个基于Tensorboard的writer对象，用于记录训练过程中的数据
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+    if args.use_reward_scaling:
+        reward_scaling = RewardScaling(shape=1, gamma=gamma)
+        reward_scaling.reset()
+
     # 初始化模型和优化器
     agent = Agent(env, action_space, num_nn, critic_std, actor_std).to(device)
     optimizer = optim.Adam(agent.parameters(), lr=learning_rate, eps=1e-5)  # 定义优化器，优化优化智能体策略，即网络的参数
@@ -217,9 +222,12 @@ def train(env, name, action_space, args):
 
             # execute the game and log data.
             next_obs, reward, done, info = env.step(action.cpu(), m, action_space)  # 执行动作，状态转移，计算奖励
+            if args.use_reward_scaling:
+                reward = reward_scaling(reward)[0]
             cumu_rewards += reward  # 累计奖励
             if done == True:  # 回合终止
                 next_obs, m = env.reset()  # 重新初始化环境
+                reward_scaling.reset()
                 writer.add_scalar("cumulative rewards", cumu_rewards, global_step)  # 在Tensorboard中记录累计奖励
                 print("global step:", global_step, "cumulative rewards:", cumu_rewards)
                 cumu_rewards = 0  # 清空累积奖励
@@ -254,6 +262,9 @@ def train(env, name, action_space, args):
         b_returns = returns.reshape(-1)
         b_values = values.reshape(-1)
 
+        if norm_adv:  # Trick: batch Advantage Normalization
+            b_advantages = (b_advantages - b_advantages.mean()) / (b_advantages.std() + 1e-8)
+
         # Optimizing the policy and value network
         b_inds = np.arange(num_env_steps)
         clipfracs = []
@@ -279,8 +290,8 @@ def train(env, name, action_space, args):
                     clipfracs += [((ratio - 1.0).abs() > clip_coef).float().mean().item()]
 
                 mb_advantages = b_advantages[mb_inds]
-                if norm_adv:  # Trick: Advantage Normalization
-                    mb_advantages = (mb_advantages - mb_advantages.mean()) / (mb_advantages.std() + 1e-8)
+                # if norm_adv:  # Trick: mini batch Advantage Normalization
+                #     mb_advantages = (mb_advantages - mb_advantages.mean()) / (mb_advantages.std() + 1e-8)
 
                 # Policy loss
                 pg_loss1 = - mb_advantages * ratio
@@ -293,8 +304,8 @@ def train(env, name, action_space, args):
 
                 # Total loss
                 entropy_loss = entropy.mean()
-                if entropy_loss < 0:
-                    print("test")
+                # if entropy_loss < 0:
+                #     print("test")
                 loss = pg_loss - ent_coef * entropy_loss + v_loss * vf_coef
 
                 # Update the neural networks

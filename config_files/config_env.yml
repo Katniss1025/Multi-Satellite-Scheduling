@@ -51,3 +51,4 @@ model_path: runs/ppo_train_20230608_23:09:37/model/checkpoint20230609_03:38:02.p
 # Trick
 norm_adv: True
 anneal_rate: True
+use_reward_scaling: True

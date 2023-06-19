@@ -19,9 +19,11 @@ pix_indices = np.arange(npix)
 ra, dec = healpy.pix2ang(nside_std, pix_indices, lonlat=True)
 [hra, hdec] = find_highest_prob_pixel(m, nside_std)
 _ra, _dec, tag = rotate_to_origin(ra, dec, hra, hdec)  # in degree
-pix_rotated = healpy.ang2pix(nside=nside_std, theta=_ra, phi=_dec, lonlat=True)
-m_rotated = np.full(m.shape, np.nan)
-m_rotated[pix_rotated] = m
+m_rotated = healpy.get_interp_val(m, _ra, _dec, lonlat=True)
+# pix_rotated = healpy.ang2pix(nside=nside_std, theta=_ra, phi=_dec, lonlat=True)
+# # m_rotated = np.full(m.shape, np.nan)
+# m_rotated = np.zeros_like(m)
+# m_rotated[pix_rotated] = m
 
 # 对空值进行插值
 # mask = np.isnan(m_rotated)

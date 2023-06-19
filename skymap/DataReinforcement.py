@@ -54,12 +54,8 @@ def data_reinforcement_by_rotate():
     # Data Reinforcement by rotation
     _ra, _dec, tag = rotate(ra, dec)  # in degree
 
-    # Convert the Equatorial coordinates back to pixel coordinates
-    pix_rotated = healpy.ang2pix(nside=nside_std, theta=_ra, phi=_dec, lonlat=True)
+    m_rotated = healpy.get_interp_val(m, _ra, _dec, lonlat=True)
 
-    # Recalculate the prob
-    m_rotated = np.zeros_like(m)
-    m_rotated[pix_rotated] = m
     m_rotated = m_rotated / np.sum(m_rotated)
 
     # Calculate credible region area

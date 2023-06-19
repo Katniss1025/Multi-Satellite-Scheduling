@@ -1,6 +1,5 @@
 import numpy as np
 
-
 def equatorial_to_cartesian(ra, dec):
     """
     ra(float): 赤经 (degree)
@@ -12,8 +11,6 @@ def equatorial_to_cartesian(ra, dec):
     y = np.sin(ra) * np.cos(dec)
     z = np.sin(dec)
     return [x, y, z]
-
-
 
 # 将三维坐标转换为弧度
     ra_rad_rot = np.arctan2(y_rotated, x_rotated)
@@ -73,6 +70,7 @@ def rotate(ras, decs):
     # 计算旋转后的三维坐标
     for i in range(x.shape[0]):
         x_rotated[i], y_rotated[i], z_rotated[i] = np.dot(rotMat, [x[i], y[i], z[i]])
+
     # 将三维坐标转换为弧度
     ra_rad_rot = np.arctan2(y_rotated, x_rotated)
     dec_rad_rot = np.arctan2(z_rotated, np.sqrt(x_rotated ** 2 + y_rotated ** 2))
@@ -88,7 +86,6 @@ def rotate(ras, decs):
 
     return ras_rotated, decs_rotated, tag
 
-
 def rotate_to_origin(ras, decs, hra, hdec):
     '''
     Args：
@@ -102,8 +99,7 @@ def rotate_to_origin(ras, decs, hra, hdec):
         tag(str): 记录旋转信息
     '''
 
-
-    axises = ['z','y' ]  # x, y, z分别对应的数字
+    axises = ['z', 'y']  # x, y, z分别对应的数字
     angle = [hra, -hdec]
     # 旋转信息
     tag = ''
@@ -125,11 +121,6 @@ def rotate_to_origin(ras, decs, hra, hdec):
         temp = calRotMat(axises[i], angle[i])
         rotMat = np.dot(rotMat, temp)
 
-    rotMat = rotMat.T
-
-    [xh, yh, zh] = equatorial_to_cartesian(hra, hdec)
-    [xh_r, yh_r, zh_r] = np.dot(rotMat, [xh, yh, zh])
-    print([xh_r, yh_r, zh_r])
     # 计算旋转后的三维坐标
     for i in range(x.shape[0]):
         x_rotated[i], y_rotated[i], z_rotated[i] = np.dot(rotMat, [x[i], y[i], z[i]])
