@@ -76,7 +76,7 @@ class MultiSatelliteEnv(gym.Env):
         # 转换为二维图像
         from skymap import SkyMapUtils as smu
         # smu.visualize(m)
-        pmap = smu.interpolate_sky_map(m, 128, image=True)
+        pmap = smu.interpolate_sky_map(m, 128, image=False)
 
         # 随任务修改 TODO
         self.state = pmap  # 新的skymap的prob

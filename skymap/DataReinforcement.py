@@ -67,44 +67,44 @@ def data_reinforcement_by_rotate():
 
     print('图像已生成')
 
-    projview(
-        m,
-        coord=["E"],
-        graticule=True,
-        cmap=plt.cm.RdYlBu,
-        cbar=False,
-        graticule_labels=True,
-        longitude_grid_spacing=45,
-        projection_type="mollweide",  # cart, mollweide
-        # unit="cbar label",
-        # xlabel="Right Ascension",
-        # ylabel="Declination",
-        # cb_orientation="vertical",
-        # rot=(30,45),
-        title='Original Map:',
-        llabel=event,
-        rlabel='90% area:' + str(round(m_area_90)) + 'deg2'
-    )
-    show()
-    projview(
-        m_rotated,
-        coord=["E"],
-        graticule=True,
-        cmap=plt.cm.RdYlBu,
-        cbar=False,
-        graticule_labels=True,
-        projection_type="mollweide",  # cart, mollweide
-        longitude_grid_spacing=45,
-        title=tag,
-        llabel=event,
-        rlabel='90% area:' + str(round(m_rotated_area_90)) + 'deg2'
-        # unit="cbar label",
-        # xlabel="Right Ascension",
-        # ylabel="Declination",
-        # cb_orientation="vertical",
-        # rot=(30,45),
-    )
-    show()
+    # projview(
+    #     m,
+    #     coord=["E"],
+    #     graticule=True,
+    #     cmap=plt.cm.RdYlBu,
+    #     cbar=False,
+    #     graticule_labels=True,
+    #     longitude_grid_spacing=45,
+    #     projection_type="mollweide",  # cart, mollweide
+    #     # unit="cbar label",
+    #     # xlabel="Right Ascension",
+    #     # ylabel="Declination",
+    #     # cb_orientation="vertical",
+    #     # rot=(30,45),
+    #     title='Original Map:',
+    #     llabel=event,
+    #     rlabel='90% area:' + str(round(m_area_90)) + 'deg2'
+    # )
+    # show()
+    # projview(
+    #     m_rotated,
+    #     coord=["E"],
+    #     graticule=True,
+    #     cmap=plt.cm.RdYlBu,
+    #     cbar=False,
+    #     graticule_labels=True,
+    #     projection_type="mollweide",  # cart, mollweide
+    #     longitude_grid_spacing=45,
+    #     title=tag,
+    #     llabel=event,
+    #     rlabel='90% area:' + str(round(m_rotated_area_90)) + 'deg2'
+    #     # unit="cbar label",
+    #     # xlabel="Right Ascension",
+    #     # ylabel="Declination",
+    #     # cb_orientation="vertical",
+    #     # rot=(30,45),
+    # )
+    # show()
     return m_rotated, m_rotated_area_90, m_rotated_area_50
 
 

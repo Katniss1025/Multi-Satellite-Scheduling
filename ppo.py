@@ -197,6 +197,7 @@ def train(env, name, action_space, args):
 
     global_step = 0  # 定义全局步数
     cumu_rewards = 0  # 定义累计奖励
+    cumu_rewards_no_scaling = 0
     num_rounds = total_timesteps // num_env_steps  # 训练回合数
     for round in range(1, num_rounds+1):  # round不同于回合。 训练过程不以回合存储，以固定时间步存储。
         if anneal_rate:
@@ -222,6 +223,7 @@ def train(env, name, action_space, args):
 
             # execute the game and log data.
             next_obs, reward, done, info = env.step(action.cpu(), m, action_space)  # 执行动作，状态转移，计算奖励
+            cumu_rewards_no_scaling += reward
             if args.use_reward_scaling:
                 reward = reward_scaling(reward)[0]
             cumu_rewards += reward  # 累计奖励
@@ -229,8 +231,9 @@ def train(env, name, action_space, args):
                 next_obs, m = env.reset()  # 重新初始化环境
                 reward_scaling.reset()
                 writer.add_scalar("cumulative rewards", cumu_rewards, global_step)  # 在Tensorboard中记录累计奖励
-                print("global step:", global_step, "cumulative rewards:", cumu_rewards)
+                print("global step:", global_step, "cumulative rewards:", cumu_rewards, "unscaling rewards:", cumu_rewards_no_scaling)
                 cumu_rewards = 0  # 清空累积奖励
+                cumu_rewards_no_scaling = 0
             rewards[step] = torch.tensor(reward).to(device).view(-1)
             try:
                 next_obs, next_done = torch.Tensor(next_obs).to(device), torch.Tensor([done]).to(device)
