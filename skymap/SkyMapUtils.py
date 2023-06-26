@@ -100,3 +100,5 @@ def visualize_selected_pixel(m, pixel_indices, nside):
     hp.mollview(mask, title="Selected Pixels")
     plt.show()
 
+
+

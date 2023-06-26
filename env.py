@@ -70,11 +70,14 @@ class MultiSatelliteEnv(gym.Env):
         """
         # 生成新的事件
         from skymap.DataReinforcement import data_reinforcement_by_rotate
+        from skymap import SkyMapUtils as smu
         self.state = np.zeros(self.state.shape)  # [len(m), 2]
         m, m_rotated_area_90, m_rotated_area_50 = data_reinforcement_by_rotate()
+        # smu.visualize(m)
+        from skymap.transUtils import rotate_to_origin
+        m = rotate_to_origin(m, nside_std=128)
 
         # 转换为二维图像
-        from skymap import SkyMapUtils as smu
         # smu.visualize(m)
         pmap = smu.interpolate_sky_map(m, 128, image=False)
 

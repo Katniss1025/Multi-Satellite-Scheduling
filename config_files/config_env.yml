@@ -37,7 +37,7 @@ actor_std: 0.01
 learning_rate: 5.0e-4
 env_seed: 12315
 num_epoch_steps: 1000
-total_timesteps: 1000000
+total_timesteps: 2000000
 num_env_steps: 128
 num_update_steps: 4
 gae_lambda: 0.95

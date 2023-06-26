@@ -1,4 +1,5 @@
 import numpy as np
+import healpy
 
 def equatorial_to_cartesian(ra, dec):
     """
@@ -86,7 +87,7 @@ def rotate(ras, decs):
 
     return ras_rotated, decs_rotated, tag
 
-def rotate_to_origin(ras, decs, hra, hdec):
+def rotate_to_origin(m, nside_std):
     '''
     Args：
         ras(array):赤经数组，degree [0,360]
@@ -98,6 +99,11 @@ def rotate_to_origin(ras, decs, hra, hdec):
         decs_rotated(array): 选钻后的赤纬 [-90,90]
         tag(str): 记录旋转信息
     '''
+    npix = healpy.nside2npix(nside_std)  # 标准healpix下像素总数
+    pix_indices = np.arange(npix)
+    ras, decs = healpy.pix2ang(nside_std, pix_indices, lonlat=True)
+    from skymap.probUtils import find_highest_prob_pixel
+    [hra, hdec] = find_highest_prob_pixel(m, nside_std)
 
     axises = ['z', 'y']  # x, y, z分别对应的数字
     angle = [hra, -hdec]
@@ -136,4 +142,9 @@ def rotate_to_origin(ras, decs, hra, hdec):
     # ras_rotated[ras_rotated < 0] += 360  # 从(-180,180)映射到(0,360)的赤经表示
     decs_rotated = np.clip(decs_rotated.reshape(ras.shape), -90, 90)
 
-    return ras_rotated, decs_rotated, tag
+    m_rotated = healpy.get_interp_val(m, ras_rotated, decs_rotated, lonlat=True)
+
+    # 概率值归为1
+    m_rotated = m_rotated / np.sum(m_rotated)
+
+    return m_rotated
