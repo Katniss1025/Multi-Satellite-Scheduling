@@ -46,9 +46,7 @@ class MultiSatelliteEnv(gym.Env):
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         # TODO
-        # self.state_sat = [0] * state_size['sat']  # 卫星状态
         self.state_task = torch.zeros(181, 361).to(device)  # 任务状态
-        # self.state_inr = [0] * state_size['inr']  # 中断状态
         # self.state = np.concatenate([np.array(self.state_sat), np.array(self.state_task), np.array(self.state_inr)])  # 拼接卫星、任务、中断状态
         self.state = self.state_task  # 拼接卫星、任务状态空间
 
@@ -62,7 +60,7 @@ class MultiSatelliteEnv(gym.Env):
         self.observation_space = spaces.Box(low=0, high=1, shape=self.state.shape)  # 概率，观测时长，中断时长
 
     def seed(self, seed):
-        random.seed(seed)
+        np.random.seed(seed)
 
     def reset(self):
         """ 重置环境，新的爆发事件
@@ -116,7 +114,7 @@ class MultiSatelliteEnv(gym.Env):
         # self.state[int(len(self.state)/2)+ipix_total] += 10  # 时长状态
 
         # 更新reward
-        reward += np.sum(m[ipix_total] )  # 随任务修改 当前reward为 概率*时长
+        reward += np.sum(m[ipix_total])  # 随任务修改 当前reward为 概率*时长
 
         # 更新步数
         self.current_step += 1
@@ -132,6 +130,3 @@ class MultiSatelliteEnv(gym.Env):
 
     def close(self):
         pass
-
-
-
