@@ -1,12 +1,15 @@
 import os
 import numpy as np
-import SkyMapUtils as su
-import GaussianUtils as gu
 from utils import get_args
+import skymap.SkyMapUtils as su
+from skymap.GaussianUtils import make_gaussian
+from skymap.probUtils import cal_credible_level, find_credible_region
+from skymap.SkyMapUtils import visualize
 
 def skymap_sample():
     # gp_dict contains eventID, means, covs. They are obtained from gaussian estimation.
-    root = (os.path.abspath(os.path.join(os.getcwd(), "../")))
+    # root = (os.path.abspath(os.path.join(os.getcwd(), "../")))
+    root = os.getcwd()
     gp_dict = np.load(root + '/data/GaussianParameters.npy', allow_pickle=True).item()
     weird = ['S190910h', 'S190901ap']
     ind = []
@@ -30,14 +33,23 @@ def skymap_sample():
     return mean, cov
 
 
-if __name__ == '__main__':
+def generate_skymap_by_gaussian():
     mean, cov = skymap_sample()
     # ensure the cov is semi positive definite
-    while(np.any(np.linalg.eig(cov)[0] < 0)):
+    while np.any(np.linalg.eig(cov)[0] < 0):
         mean, cov = skymap_sample()
-    nside_std = get_args().nside_std
-    prob = gu.make_gaussian(mean, cov, nside_std)
-    su.visualize(prob)
+    args = get_args()
+    nside_std = args.nside_std
+    prob = make_gaussian(mean, cov, nside_std)
+
+    credible_prob = cal_credible_level(prob)
+    area_90 = find_credible_region(nside_std, credible_prob, 0.9)
+    area_50 = find_credible_region(nside_std, credible_prob, 0.5)
+    # print(area_90, area_50)
+    if (area_90 <= 13000) & (area_50 <= 2000):
+
+        return prob
+    return False
 
 
 

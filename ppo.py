@@ -35,11 +35,11 @@ class Agent(nn.Module):
         super().__init__()
         # 卷积层
         self.network = nn.Sequential(
-            nn.Conv2d(in_channels=1, out_channels=2, kernel_size=3, stride=2, padding=0),
+            nn.Conv1d(in_channels=2, out_channels=4, kernel_size=3, stride=2, padding=0),
             nn.ReLU(),
-            nn.Conv2d(in_channels=2, out_channels=4, kernel_size=3, stride=2, padding=0),
+            nn.Conv1d(in_channels=4, out_channels=8, kernel_size=3, stride=2, padding=0),
             nn.ReLU(),
-            nn.Conv2d(in_channels=4, out_channels=8, kernel_size=3, stride=2, padding=0),
+            nn.Conv1d(in_channels=8, out_channels=16, kernel_size=3, stride=2, padding=0),
             nn.ReLU(),
             nn.MaxPool2d(kernel_size=3, stride=1, padding=0),
             # nn.ReLU(),
@@ -191,7 +191,7 @@ def train(env, name, action_space, args):
     rewards = torch.zeros(num_env_steps).to(device)
     dones = torch.zeros(num_env_steps).to(device)
     values = torch.zeros(num_env_steps).to(device)
-    next_obs, m = env.reset()
+    next_obs, info = env.reset()
     next_obs = torch.Tensor(next_obs).to(device)  # torch.Tensor(env.reset()).to(device)
     next_done = torch.zeros(1).to(device)
 
@@ -222,13 +222,13 @@ def train(env, name, action_space, args):
             logprobs[step] = logprob
 
             # execute the game and log data.
-            next_obs, reward, done, info = env.step(action.cpu(), m, action_space)  # 执行动作，状态转移，计算奖励
+            next_obs, reward, done, info = env.step(action.cpu())  # 执行动作，状态转移，计算奖励
             cumu_rewards_no_scaling += reward
             if args.use_reward_scaling:
                 reward = reward_scaling(reward)[0]
             cumu_rewards += reward  # 累计奖励
-            if done == True:  # 回合终止
-                next_obs, m = env.reset()  # 重新初始化环境
+            if done:  # 回合终止
+                next_obs, info = env.reset()  # 重新初始化环境
                 reward_scaling.reset()
                 writer.add_scalar("cumulative rewards", cumu_rewards, global_step)  # 在Tensorboard中记录累计奖励
                 print("global step:", global_step, "cumulative rewards:", cumu_rewards, "unscaling rewards:", cumu_rewards_no_scaling)
@@ -361,7 +361,8 @@ def Test(env, name, action_space, args):
     print('开始测试')
 
     for i_ep in range(0, args.test_eps):
-        next_state, m = env.reset()
+        next_state, info = env.reset()
+        m = info['m']
         skymap.append(m)  # 记录skymap
         ep_reward = 0
         ep_step = 0
@@ -372,7 +373,7 @@ def Test(env, name, action_space, args):
             with torch.no_grad():
                 action, logprob, _, value = agent.get_action_and_value(next_state.unsqueeze(0).unsqueeze(0), mode=args.mode)  # 计算动作
             ep_actions.append(scale_action(action, action_space).tolist()[0])  # 记录每一步动作
-            next_state, reward, terminated, _ = env.step(action.cpu(), m, action_space)  # 采取动作
+            next_state, reward, terminated, _ = env.step(action.cpu())  # 采取动作
             ep_reward += reward  # 回合累计奖励
             ep_step += 1  # 统计回合步数
             if terminated:
@@ -415,8 +416,9 @@ if __name__ == "__main__":
     anneal_rate = args.anneal_rate
     norm_adv = args.norm_adv
     mode = args.mode
+    m = np.array([0] * n_pix)  # 初始化m
 
-    env = MultiSatelliteEnv(n_sat, n_pix, t, state_size, action_space, num_epoch_steps)
+    env = MultiSatelliteEnv(n_sat, n_pix, t, state_size, action_space, num_epoch_steps, m)
     env.seed(args.seed)
 
     name = 'ppo_' + mode + '_' + time.strftime('%Y%m%d_%H:%M:%S', time.localtime(int(round(time.time() * 1000)) / 1000))

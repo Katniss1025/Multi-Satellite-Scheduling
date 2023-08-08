@@ -65,7 +65,7 @@ def data_reinforcement_by_rotate():
     m_rotated_area_90 = pu.find_credible_region(nside=nside_std, credible_levels=m_rotated_level, credible=0.9)
     m_rotated_area_50 = pu.find_credible_region(nside=nside_std, credible_levels=m_rotated_level, credible=0.5)
 
-    print('图像已生成')
+    # print('图像已生成')
 
     # projview(
     #     m,

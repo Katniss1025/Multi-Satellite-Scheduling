@@ -69,25 +69,20 @@ def interpolate_sky_map(m, nside, image=False):
     hp = HEALPix(nside=nside, order='NESTED', frame=Galactic())
     pmap = hp.interpolate_bilinear_skycoord(coords, m_nest)
     pmap = pmap.reshape((181, 361))
+    try:
+        pmap = pmap / pmap.sum()
+    except:
+        print("")
 
     # plot
-    import matplotlib.pyplot as plt
     if image:
-        plt.figure(figsize=(10, 5))
-        im = plt.imshow(pmap, extent=[360, 0, -90, 90], cmap=plt.cm.RdYlBu, origin='lower', aspect='auto')
-        plt.colorbar(im)
-        plt.xlabel('Right ascension')
-        plt.ylabel('Declination')
-        plt.grid()
-        plt.show()
+        plot_2d_image(pmap)
 
     return pmap
 
 
 def visualize_selected_pixel(m, pixel_indices, nside):
     import healpy as hp
-    import numpy as np
-    import matplotlib.pyplot as plt
 
     npix = hp.nside2npix(nside)  # 总像素数
 
@@ -100,5 +95,18 @@ def visualize_selected_pixel(m, pixel_indices, nside):
     hp.mollview(mask, title="Selected Pixels")
     plt.show()
 
+
+def plot_2d_image(pmap, show=True, size=(10, 5), colorbar=True, label=True):
+    plt.figure(figsize=size)
+    im = plt.imshow(pmap, extent=[360, 0, -90, 90], cmap=plt.cm.RdYlBu, origin='lower', aspect='auto')
+    if colorbar:
+        plt.colorbar(im)
+    if label:
+        plt.xlabel('Right ascension')
+        plt.ylabel('Declination')
+    plt.grid()
+    if show:
+        plt.show()
+    return im
 
 

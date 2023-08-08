@@ -4,7 +4,9 @@ import numpy as np
 from scipy import stats
 import SkyMapUtils as smu
 import transUtils as tu
+from probUtils import cal_credible_level, find_credible_region
 from utils import get_args
+
 
 
 def make_gaussian(mean, cov, nside=128):
@@ -62,17 +64,24 @@ if __name__ == "__main__":
     # 估计所有Sky Maps的参数
     means = []
     covs = []
+    area_90 = []
+    area_50 = []
     root = (os.path.abspath(os.path.join(os.getcwd(), "../")))
     eventID = np.load(root + '/data/eventID.npy')
-    nside_std = get_args().nside_std
+    nside_std = 64  # get_args().nside_std
     for i in eventID:
-        data, h, event = smu.read_a_skymap(event=i)
+        data, h, event, _ = smu.read_a_skymap(event=i)
         prob, npix, ra, dec, area = smu.skymap_standard(data, nside_std)
         A = np.array(tu.equatorial_to_cartesian(ra, dec))  # A[0,:], A[1,:], A[2,:]分别为各网格x,y,z坐标
-        samples = np.random.choice(npix, size=1000, p=prob)  # 按照prob随机采1000个网格作为样本
-        mean = np.mean(A[:, samples], axis=1)
-        cov = np.cov(A[:, samples])
-        means.append(mean)
-        covs.append(cov)
+        # samples = np.random.choice(npix, size=1000, p=prob)  # 按照prob随机采1000个网格作为样本
+        # mean = np.mean(A[:, samples], axis=1)
+        # cov = np.cov(A[:, samples])
+        # means.append(mean)
+        # covs.append(cov)
+        credible_prob = cal_credible_level(prob)
+        area = find_credible_region(nside=nside_std, credible_levels=credible_prob, credible=0.9)
+        area_90.append(area)
+        area = find_credible_region(nside=nside_std, credible_levels=credible_prob, credible=0.5)
+        area_50.append(area)
 
     np.save(root + '/data/GaussianParameters.npy', {'eventID': eventID, 'means': means, 'covs': covs})

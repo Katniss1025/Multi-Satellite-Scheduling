@@ -4,9 +4,18 @@ sat_num: 126
 satA_num: 108
 satB_num: 9
 satC_num: 9
-n_sat: 2
+n_sat: 6
 n_state: 3
 n_actions: 2
+h: 500000
+Re: 6371393
+Omega: [0, 0, 0, 0, 0, 0]  # 升交点赤经
+omega: [30, 30, 30, 30, 30, 30]  # 近地点幅角
+mean_ano: [0, 120, 240, 0, 120, 240]  # 平近点角
+e: 0  # 离心率
+i: [30, 30, 30, 60, 60, 60]  # 轨道倾角
+sun_avoid_angle: 75  # 太阳避免角
+
 # action
 
 # state
@@ -14,16 +23,17 @@ state_size:
   sat:
   task: 1
   inr:
-
-npix: 196608
+task_dim: 64
+npix: 768
 t: 1000
+week: 20  # 以第20周为例
 
 
 #seed
 seed: 12315
 
 #SkyMapStandard
-nside_std: 128
+nside_std: 8
 
 #ppo
 kl_target: 0.02
@@ -36,7 +46,7 @@ critic_std: 1
 actor_std: 0.01
 learning_rate: 5.0e-4
 env_seed: 12315
-num_epoch_steps: 1000
+num_epoch_steps: 30
 total_timesteps: 2000000
 num_env_steps: 128
 num_update_steps: 4
@@ -52,3 +62,8 @@ model_path: runs/ppo_train_20230608_23:09:37/model/checkpoint20230609_03:38:02.p
 norm_adv: True
 anneal_rate: True
 use_reward_scaling: True
+
+# email
+sender: katniss5050@126.com
+receiver: yinxiaodan21@mails.ucas.ac.cn
+subject: "任务完成提醒"  # 邮件主题
