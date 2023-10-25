@@ -81,7 +81,7 @@ def interpolate_sky_map(m, nside, image=False):
     return pmap
 
 
-def visualize_selected_pixel(m, pixel_indices, nside):
+def visualize_selected_pixel(m, pixel_indices, nside, title=None):
     import healpy as hp
 
     npix = hp.nside2npix(nside)  # 总像素数
@@ -92,8 +92,7 @@ def visualize_selected_pixel(m, pixel_indices, nside):
     mask[~np.in1d(np.arange(npix), pixel_indices)] = np.nan
 
     # 可视化
-    hp.mollview(mask, title="Selected Pixels")
-    plt.show()
+    visualize(mask, title)
 
 
 def plot_2d_image(pmap, show=True, size=(10, 5), colorbar=True, label=True):

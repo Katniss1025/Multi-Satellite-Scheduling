@@ -24,12 +24,5 @@ def send_email(sender, receiver, subject, message):
     except Exception as e:
         print("发送邮件时出现错误:", str(e))
 
-# 使用示例
-args = get_args()
-sender = args.sender  # 发送方的电子邮件地址
-receiver = args.receiver  # 接收方的电子邮件地址
-subject = args.subject  # 邮件主题
-message = "您的本地任务已完成，请注意查看结果。"  # 邮件内容
 
-send_email(sender, receiver, subject, message)
 

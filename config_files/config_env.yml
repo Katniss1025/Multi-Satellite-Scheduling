@@ -4,17 +4,18 @@ sat_num: 126
 satA_num: 108
 satB_num: 9
 satC_num: 9
-n_sat: 6
+n_sat: 4
 n_state: 3
 n_actions: 2
-h: 500000
+h: 600000
 Re: 6371393
-Omega: [0, 0, 0, 0, 0, 0]  # 升交点赤经
-omega: [30, 30, 30, 30, 30, 30]  # 近地点幅角
-mean_ano: [0, 120, 240, 0, 120, 240]  # 平近点角
+Omega: [0, 0, 0, 0]  # 升交点赤经
+omega: [30, 30, 30, 30]  # 近地点幅角
+mean_ano: [0, 90, 180, 270]  # 平近点角
 e: 0  # 离心率
-i: [30, 30, 30, 60, 60, 60]  # 轨道倾角
+i: [43, 30, 30, 22]  # 轨道倾角
 sun_avoid_angle: 75  # 太阳避免角
+radius: 5
 
 # action
 
@@ -67,3 +68,17 @@ use_reward_scaling: True
 sender: katniss5050@126.com
 receiver: yinxiaodan21@mails.ucas.ac.cn
 subject: "任务完成提醒"  # 邮件主题
+
+# ABC
+NP: 200
+maxCycle: 150
+limit: 50
+runtime: 3
+qtdm_show: False
+modified: True
+greedy_init: True
+num_processes: 15
+
+# problem
+simple: True
+factor: 3

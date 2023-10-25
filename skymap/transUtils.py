@@ -1,5 +1,6 @@
 import numpy as np
 import healpy
+import math
 
 def equatorial_to_cartesian(ra, dec):
     """
@@ -12,6 +13,20 @@ def equatorial_to_cartesian(ra, dec):
     y = np.sin(ra) * np.cos(dec)
     z = np.sin(dec)
     return [x, y, z]
+
+
+def xyz_to_latitude_longitude(x, y, z):
+    # 计算纬度 θ
+    theta = math.asin(z)
+
+    # 计算经度 φ
+    phi = math.atan2(y / math.cos(theta), x / math.cos(theta))
+
+    # 转换为指定范围内的经度和纬度
+    longitude = (math.degrees(phi) + 360) % 360
+    latitude = math.degrees(theta)
+
+    return latitude, longitude
 
 # 将三维坐标转换为弧度
     ra_rad_rot = np.arctan2(y_rotated, x_rotated)

@@ -59,18 +59,20 @@ class MultiSatelliteEnv(gym.Env):
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         # TODO
-        self.state_task = torch.zeros(self.npix).to(device)  # 任务状态: 索引、skymap
+        if self.args.simple:
+            self.state_task = torch.zeros(np.round(self.n_sat*self.args.factor).astype(int)).to(device)  # 任务状态: 索引、skymap
+        else:
+            self.state_task = torch.zeros(self.npix).to(device)
         self.state_sat = torch.zeros(2 * self.n_sat).to(device)  # 卫星状态：目前所处平近点角、正在看的目标存在爆发源的概率
+        # self.state_cover = torch.zeros(self.n_sat+1, self.npix)
         # self.state = np.concatenate([np.array(self.state_sat), np.array(self.state_task)])  # 拼接卫星、任务
         self.state = dict({'task': self.state_task, 'sat': self.state_sat, 't': self.t})
 
-        # 定义动作空间.
-        # Case1: 连续动作空间，分配赤经和赤纬
-        # self.action_space = spaces.Box(low=self.action_details['low'], high=self.action_details['high'],
-        #                                shape=self.action_details['shape'], dtype=float)
-        # Case2: 离散动作空间，分配网格的索引.
-
-        self.action_space = spaces.MultiDiscrete([self.npix] * self.n_sat)
+        # 定义动作空间: 离散动作空间，分配网格的索引.
+        if self.args.simple:
+            self.action_space = spaces.MultiDiscrete([self.n_sat*self.args.factor] * self.n_sat)
+        else:
+            self.action_space = spaces.MultiDiscrete([self.npix] * self.n_sat)
 
         # 定义观测空间 TODO
         self.observation_space = spaces.Tuple((
@@ -88,15 +90,13 @@ class MultiSatelliteEnv(gym.Env):
         # 生成新的事件并计算状态
         # 归一化概率
         self.m = (self.m_origin - np.min(self.m_origin)) / (np.max(self.m_origin) - np.min(self.m_origin))
-        self.state_task = np.zeros(self.state_task.shape)
-        self.state_sat = np.zeros(self.state_sat.shape)
-        # m, m_rotated_area_90, m_rotated_area_50 = data_reinforcement_by_rotate()  # 通过旋转生成新的事件
-        self.state_task = self.m_origin
-        self.state_sat[0:self.n_sat] = self.args.mean_ano
-        utc_start, utc_end = get_utc_start_end_of_week(2020, self.args.week)  # 随机在2020年中选一周
-        self.t = 0
+        # 随机在2020年中选一周
+        utc_start, utc_end = get_utc_start_end_of_week(2020, self.args.week)
         # 可视化该事件
-        visualize(self.m_origin, title=None)
+        #visualize(self.m_origin, title=None)
+        # 以某网格为视场中心，计算视场内网格集合及概率和
+        self.pixels_in_FOV = np.load('data/pixels_in_FOV.npy', allow_pickle=True)
+        self.probs_in_FOV = [np.sum(self.m_origin[pixels]) for pixels in self.pixels_in_FOV]
         # 计算被太阳遮挡的网格
         sun_pos_start = sun_position(utc_to_julian_day(utc_start))  # 计算开始时刻太阳的位置
         pix_indices = np.arange(self.npix)
@@ -105,8 +105,19 @@ class MultiSatelliteEnv(gym.Env):
                                                self.args.Omega[0], self.args.i[0], degree=True)
         # 可视化太阳遮挡情况
         pixel_indices = np.where(~self.pix_covered_by_sun)[0]
-        visualize_selected_pixel(self.m_origin, pixel_indices, self.nside_std)
+        # visualize_selected_pixel(self.m_origin, pixel_indices, self.nside_std)
 
+        # 计算状态
+        if self.args.simple:
+            self.state_task = np.sort(self.m_origin[pixel_indices])[::-1][:np.round(self.args.factor*self.n_sat).astype(int)]  # 不被太阳遮挡的最大概率网格
+            sorted_indices = np.argsort(-self.m_origin[pixel_indices])[:np.round(self.args.factor * self.n_sat).astype(int)]
+            self.sorted_pixel_indices = np.array(pixel_indices)[sorted_indices]  # 对应的网格索引
+        else:
+            self.state_task = np.zeros(self.state_task.shape)
+            self.state_task = self.m_origin
+        self.state_sat = np.zeros(self.state_sat.shape)
+        self.state_sat[0:self.n_sat] = self.args.mean_ano
+        self.t = 0
 
         # 计算地球遮挡时候的纬度幅角
         a = self.args.Re + self.args.h  # 半径=地球半径+轨道高度
@@ -138,16 +149,20 @@ class MultiSatelliteEnv(gym.Env):
         self.state = dict({'task': self.state_task, 'sat': self.state_sat, 't': self.t})  # 新的skymap的prob
 
         self.current_step = 0
-        info = dict({'origin_m': self.m_origin, 'm': self.m})
+        info = dict({'origin_m': self.m_origin, 'm': self.m,
+                     'pix_covered_by_sun': self.pix_covered_by_sun,
+                     'shadow_u_start': self.shadow_u_start,
+                     'shadow_u_end': shadow_u_end})
         return self.state, info
 
     def step(self, action, next):
         """
+        action(array): 每个卫星观测nested编号的网格
         next: 是否更新状态
         """
         reward = 0
-        # ipix_total = np.array([])
-        self.state = self.state  # TODO
+        action = self.sorted_pixel_indices[action]
+        # action = hp.nest2ring(self.nside_std, action)  # TODO 转为ring结构
         action_ang = np.array(hp.pix2ang(nside=self.nside_std, ipix=action, lonlat=True))
         # action = scale_action(action, self.action_details)  # 将动作映射成赤经赤纬
         action_ang = action_ang.reshape(2, -1).T
@@ -158,10 +173,13 @@ class MultiSatelliteEnv(gym.Env):
         for i in action_ang:  # i为卫星对应观测的网格中心索引
             ra, dec = i[0], i[1]
             # 求以(ra,dec)为视场中心，以radius为半径视场内网格集合
-            radius = 2.5
-            ipix_disc, ipix_prob, prob_sum = integrated_prob_in_a_circle(ra, dec, radius, self.m, self.nside_std)
+            pix = hp.ang2pix(self.args.nside_std, ra, dec, False, True)
+            ipix_disc = self.pixels_in_FOV[pix]
+            prob_sum = self.probs_in_FOV[pix]
+            # 效率比较低，不用这种方法
+            # ipix_disc, ipix_prob, prob_sum = integrated_prob_in_a_circle(ra, dec, self.args.radius, self.m, self.nside_std)
             # ipix_total = np.append(ipix_total, [ipix_disc])
-            ipix_sat.append(ipix_disc)
+            ipix_sat.append(ipix_disc.tolist())
             ipix_m.append(prob_sum)
         ipix_m = np.array(ipix_m)
 
@@ -191,16 +209,18 @@ class MultiSatelliteEnv(gym.Env):
                 left_u.append(360-u_now[idx]+start)
             else:
                 left_u.append(start-u_now[idx])
-        if np.all(np.array(left_u) > 0):
-            consflag_earth = True
-            # return self.state, local_reward, False, consflag
+        consflag_earth = np.array(left_u) > 0
+        # if np.all(np.array(left_u) > 0):
+        #     consflag_earth = True
 
         # 计算奖励
         consflag = consflag_earth & consflag_sun
         t = left_u / omega_v
-        unique_values, unique_indices = np.unique(action, return_index=True)
-        unique_indices = unique_indices.tolist()
-        local_reward = np.sum(ipix_m[unique_indices]) * np.min(t) / 60 if consflag else 0
+        unique_values_filter, unique_indices = np.unique(action[consflag], return_index=True)
+        consflag_filter = consflag[unique_indices]
+        local_reward = np.sum(ipix_m[unique_indices] * consflag_filter.astype(int)) * np.min(t) / 60
+        # unique_indices = np.unique(action).tolist()
+        # local_reward = np.sum(ipix_m[unique_indices]) * np.min(t) / 60 if np.all(consflag) else 0
         # reward = reward + local_reward
         if next:
             self.t = self.t + np.min(t)
